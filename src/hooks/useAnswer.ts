@@ -3,6 +3,8 @@
 import { useState, useCallback } from "react";
 import { answerStyles } from "@/data/styles";
 
+export type AnswerLength = "concise" | "detailed";
+
 interface AnswerState {
   text: string;
   styleId: string;
@@ -11,6 +13,7 @@ interface AnswerState {
   isLoading: boolean;
   error: string | null;
   styleIndex: number;
+  length: AnswerLength;
 }
 
 export function useAnswer() {
@@ -22,10 +25,16 @@ export function useAnswer() {
     isLoading: false,
     error: null,
     styleIndex: 0,
+    length: "concise",
   });
 
   const fetchAnswer = useCallback(
-    async (questionId: string, questionText: string, styleIndex: number) => {
+    async (
+      questionId: string,
+      questionText: string,
+      styleIndex: number,
+      length: AnswerLength
+    ) => {
       const style = answerStyles[styleIndex];
       setState((prev) => ({
         ...prev,
@@ -34,6 +43,7 @@ export function useAnswer() {
         styleId: style.id,
         styleName: style.nameKo,
         styleIndex,
+        length,
       }));
 
       try {
@@ -44,6 +54,7 @@ export function useAnswer() {
             questionId,
             questionText,
             styleId: style.id,
+            length,
           }),
         });
         const data = await res.json();
@@ -68,16 +79,21 @@ export function useAnswer() {
   const nextStyle = useCallback(
     (questionId: string, questionText: string) => {
       const nextIndex = (state.styleIndex + 1) % answerStyles.length;
-      fetchAnswer(questionId, questionText, nextIndex);
+      fetchAnswer(questionId, questionText, nextIndex, state.length);
     },
-    [state.styleIndex, fetchAnswer]
+    [state.styleIndex, state.length, fetchAnswer]
   );
 
   const loadAnswer = useCallback(
-    (questionId: string, questionText: string) => {
-      fetchAnswer(questionId, questionText, state.styleIndex);
+    (questionId: string, questionText: string, length?: AnswerLength) => {
+      fetchAnswer(
+        questionId,
+        questionText,
+        state.styleIndex,
+        length || state.length
+      );
     },
-    [state.styleIndex, fetchAnswer]
+    [state.styleIndex, state.length, fetchAnswer]
   );
 
   return { ...state, loadAnswer, nextStyle };

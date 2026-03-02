@@ -19,7 +19,7 @@ export function useQuestionSearch(query: string, categoryId?: CategoryId) {
       const params = new URLSearchParams();
       if (q) params.set("q", q);
       if (cat) params.set("category", cat);
-      params.set("limit", "200");
+      params.set("limit", "500");
 
       const res = await fetch(`/api/questions?${params.toString()}`);
       const data = await res.json();

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
+import Link from "next/link";
 import { useInvitation } from "@/hooks/useInvitation";
 import { InvitationInput, RelationshipType } from "@/types/invitation";
 import LoadingDots from "@/components/ui/LoadingDots";
@@ -8,87 +9,80 @@ import RefreshButton from "@/components/ui/RefreshButton";
 import CopyButton from "@/components/ui/CopyButton";
 import ShareButton from "@/components/ui/ShareButton";
 
-function getUpcomingSundays(count: number): { label: string; value: string }[] {
-  const sundays: { label: string; value: string }[] = [];
-  const today = new Date();
-  const day = today.getDay();
-  const nextSunday = new Date(today);
-  nextSunday.setDate(today.getDate() + (day === 0 ? 7 : 7 - day));
-  for (let i = 0; i < count; i++) {
-    const d = new Date(nextSunday);
-    d.setDate(nextSunday.getDate() + i * 7);
-    const m = d.getMonth() + 1;
-    const dd = d.getDate();
-    sundays.push({ label: `${m}월 ${dd}일 주일`, value: `${m}월 ${dd}일 주일` });
-  }
-  return sundays;
-}
+type MessageLength = "short" | "medium" | "long";
 
 const RELATIONSHIP_OPTIONS: { value: RelationshipType; label: string }[] = [
-  { value: "family", label: "👨‍👩‍👧 가족" },
-  { value: "friend", label: "😊 친구" },
-  { value: "colleague", label: "💼 직장동료" },
-  { value: "acquaintance", label: "🤝 지인" },
+  { value: "family", label: "가족" },
+  { value: "friend", label: "친구" },
+  { value: "colleague", label: "직장동료" },
+  { value: "acquaintance", label: "지인" },
+];
+
+const LENGTH_OPTIONS: { value: MessageLength; label: string }[] = [
+  { value: "short", label: "짧게" },
+  { value: "medium", label: "보통" },
+  { value: "long", label: "길게" },
 ];
 
 export default function InvitationPage() {
   const [form, setForm] = useState<InvitationInput>({
     personName: "",
     relationship: "friend",
-    eventType: "",
+    eventType: "주일예배",
     date: "",
     location: "",
+    length: "medium",
   });
-  const [customDate, setCustomDate] = useState("");
   const [editedMessage, setEditedMessage] = useState("");
   const { message, isLoading, generate, regenerate } = useInvitation();
 
-  const sundays = useMemo(() => getUpcomingSundays(4), []);
-
-  const effectiveDate = form.date === "__custom__" ? customDate : form.date;
-  const isValid = form.personName && form.relationship && form.eventType && effectiveDate;
+  const isValid = form.eventType.trim().length > 0;
 
   const handleGenerate = () => {
     setEditedMessage("");
-    generate({ ...form, date: effectiveDate });
+    generate(form);
   };
 
   const handleRegenerate = () => {
     setEditedMessage("");
-    regenerate({ ...form, date: effectiveDate });
+    regenerate(form);
   };
 
   const displayMessage = editedMessage || message;
 
   return (
     <div className="px-4 py-4 space-y-5">
-      {/* Header */}
-      <div className="bg-apolo-yellow-light rounded-2xl px-4 py-3">
-        <p className="text-sm text-gray-700">
-          전도 대상자에게 보낼 카카오톡 초대 메시지를 만들어드립니다. ✉️
+      <div className="rounded-2xl border border-gray-100 bg-white px-4 py-3">
+        <p className="text-sm text-gray-600">
+          간편 생성 화면입니다. 대상자 상세에서 더 빠르게 작성할 수 있습니다.
         </p>
+        <Link
+          href="/main/targets"
+          className="mt-2 inline-flex text-xs font-semibold text-apolo-yellow-dark"
+        >
+          내 전도 대상자에서 사용하기 →
+        </Link>
       </div>
 
-      {/* Form */}
       <div className="space-y-4">
-        {/* Person name */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-            이름 *
+            이름 또는 호칭 (선택)
           </label>
           <input
             type="text"
-            placeholder="예: 홍길동"
+            placeholder="예: 엄마, 준이, 영희"
             value={form.personName}
-            onChange={(e) => setForm((f) => ({ ...f, personName: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, personName: e.target.value }))
+            }
             className="w-full px-4 py-3 bg-gray-50 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow transition-shadow"
           />
         </div>
 
-        {/* Relationship */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-            관계 *
+            관계
           </label>
           <div className="flex flex-wrap gap-2">
             {RELATIONSHIP_OPTIONS.map((opt) => (
@@ -107,75 +101,75 @@ export default function InvitationPage() {
           </div>
         </div>
 
-        {/* Event name - text only */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1.5">
             모임명 *
           </label>
           <input
             type="text"
-            placeholder="예: 주일예배, 부활절 특별예배, 청년부 모임..."
+            placeholder="예: 주일예배, 청년부 모임"
             value={form.eventType}
             onChange={(e) => setForm((f) => ({ ...f, eventType: e.target.value }))}
             className="w-full px-4 py-3 bg-gray-50 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow transition-shadow"
           />
         </div>
 
-        {/* Date */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-            날짜 *
+            일시 (선택)
           </label>
-          <select
-            value={form.date}
-            onChange={(e) => {
-              setForm((f) => ({ ...f, date: e.target.value }));
-              if (e.target.value !== "__custom__") setCustomDate("");
-            }}
-            className="w-full px-4 py-3 bg-gray-50 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow transition-shadow appearance-none"
-          >
-            <option value="">날짜를 선택하세요</option>
-            {sundays.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
-            <option value="__custom__">직접 입력</option>
-          </select>
-          {form.date === "__custom__" && (
-            <input
-              type="text"
-              placeholder="예: 4월 20일 오전 11시"
-              value={customDate}
-              onChange={(e) => setCustomDate(e.target.value)}
-              className="w-full mt-2 px-4 py-3 bg-gray-50 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow transition-shadow"
-            />
-          )}
+          <input
+            type="text"
+            placeholder="예: 이번 주일 오전 11시"
+            value={form.date || ""}
+            onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+            className="w-full px-4 py-3 bg-gray-50 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow transition-shadow"
+          />
         </div>
 
-        {/* Location */}
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1.5">
             장소 (선택)
           </label>
           <input
             type="text"
-            placeholder="예: 온누리교회 본당"
+            placeholder="예: 온누리교회 양재캠퍼스"
             value={form.location}
             onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
             className="w-full px-4 py-3 bg-gray-50 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow transition-shadow"
           />
         </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+            메시지 길이
+          </label>
+          <div className="flex gap-2">
+            {LENGTH_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setForm((f) => ({ ...f, length: opt.value }))}
+                className={`flex-1 rounded-xl py-2 text-xs font-semibold transition-colors ${
+                  form.length === opt.value
+                    ? "bg-apolo-yellow text-gray-900"
+                    : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Generate button */}
       <button
         onClick={handleGenerate}
         disabled={!isValid || isLoading}
         className="w-full py-4 rounded-2xl bg-apolo-yellow text-gray-900 font-bold text-base disabled:opacity-40 active:bg-apolo-yellow-dark transition-colors"
       >
-        {isLoading ? "생성 중..." : "초대 메시지 생성하기 ✉️"}
+        {isLoading ? "생성 중..." : "초대 메시지 생성하기"}
       </button>
 
-      {/* Result */}
       {(isLoading || message) && (
         <div className="space-y-3 animate-fade-in-up">
           <div className="flex items-center gap-2">

@@ -14,6 +14,7 @@ import { afterlifeQuestions } from "./afterlife";
 import { trinityQuestions } from "./trinity";
 import { holySpiritQuestions } from "./holy-spirit";
 import { creationAndEvolutionQuestions } from "./creation-and-evolution";
+import { extendedLibraryQuestions } from "./extended-library";
 
 export const allQuestions: Question[] = [
   ...existenceOfGodQuestions,
@@ -31,4 +32,5 @@ export const allQuestions: Question[] = [
   ...trinityQuestions,
   ...holySpiritQuestions,
   ...creationAndEvolutionQuestions,
+  ...extendedLibraryQuestions,
 ];

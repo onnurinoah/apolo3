@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { categories } from "@/data/categories";
 import { answerStyles } from "@/data/styles";
 import { useQuestionSearch } from "@/hooks/useQuestionSearch";
-import { useAnswer } from "@/hooks/useAnswer";
+import { useAnswer, AnswerLength } from "@/hooks/useAnswer";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 import { CategoryId } from "@/types/question";
@@ -23,6 +23,11 @@ interface QuestionItem {
 }
 
 type ViewMode = "ask" | "browse";
+
+const ANSWER_LENGTH_OPTIONS: Array<{ id: AnswerLength; label: string }> = [
+  { id: "concise", label: "짧게" },
+  { id: "detailed", label: "자세히" },
+];
 
 // ─── Inline-editable answer bubble ──────────────────────────
 function EditableBubble({ text, onChange }: { text: string; onChange: (v: string) => void }) {
@@ -54,13 +59,14 @@ function AnswerView({ question, onBack }: { question: QuestionItem; onBack: () =
   const answer = useAnswer();
   const { isFavorite, toggleFavorite } = useFavorites();
   const [editedText, setEditedText] = useState("");
+  const [length, setLength] = useState<AnswerLength>("concise");
   const isCustom = question.id.startsWith("custom-");
   const fav = isFavorite(question.id);
 
   useEffect(() => {
-    answer.loadAnswer(isCustom ? "" : question.id, question.question);
+    answer.loadAnswer(isCustom ? "" : question.id, question.question, length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [question.id]);
+  }, [question.id, length]);
 
   useEffect(() => {
     if (answer.text) setEditedText("");
@@ -111,9 +117,32 @@ function AnswerView({ question, onBack }: { question: QuestionItem; onBack: () =
 
       {(answer.text || answer.isLoading) && (
         <div className="border-t border-gray-100 px-4 py-3 space-y-3">
+          <div className="flex bg-gray-100 rounded-xl p-1">
+            {ANSWER_LENGTH_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                onClick={() => setLength(option.id)}
+                className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  length === option.id
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-400"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
           <div className="flex items-center gap-2">
             <StyleBadge name={answer.styleName} />
-            <RefreshButton onClick={() => answer.nextStyle(isCustom ? "" : question.id, question.question)} disabled={answer.isLoading} />
+            <RefreshButton
+              onClick={() =>
+                answer.nextStyle(isCustom ? "" : question.id, question.question)
+              }
+              disabled={answer.isLoading}
+            />
+            <span className="text-[11px] text-gray-300">
+              {answer.source === "database" ? "DB" : answer.source === "ai" ? "AI" : "Fallback"}
+            </span>
             <span className="text-xs text-gray-300 ml-auto">
               {answerStyles.findIndex((s) => s.id === answer.styleId) + 1}/{answerStyles.length}
             </span>
@@ -202,7 +231,7 @@ function AskView({ onSubmit }: { onSubmit: (q: string) => void }) {
       {/* 즐겨찾기 바로가기 */}
       {favorites.length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-gray-400 mb-2">♥ 즐겨찾기</p>
+          <p className="text-xs font-semibold text-gray-400 mb-2">즐겨찾기</p>
           <div className="space-y-2">
             {favorites.slice(0, 3).map((fav) => (
               <button
@@ -320,7 +349,7 @@ function BrowseView({ onSelect }: { onSelect: (q: QuestionItem) => void }) {
 // ─── Main Page ────────────────────────────────────────────────
 export default function ApologeticsPage() {
   const { show: showOnboarding, done: onboardingDone } = useOnboarding();
-  const [viewMode, setViewMode] = useState<ViewMode>("ask");
+  const [viewMode, setViewMode] = useState<ViewMode>("browse");
   const [selectedQuestion, setSelectedQuestion] = useState<QuestionItem | null>(null);
 
   const handleCustomQuestion = useCallback((questionText: string) => {
@@ -347,29 +376,29 @@ export default function ApologeticsPage() {
       <div className="px-4 pt-4 pb-2">
         <div className="flex bg-gray-100 rounded-xl p-1">
           <button
-            onClick={() => setViewMode("ask")}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-              viewMode === "ask" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"
-            }`}
-          >
-            AI 질문
-          </button>
-          <button
             onClick={() => setViewMode("browse")}
             className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
               viewMode === "browse" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"
             }`}
           >
-            DB 찾기
+            DB 라이브러리
+          </button>
+          <button
+            onClick={() => setViewMode("ask")}
+            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              viewMode === "ask" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"
+            }`}
+          >
+            직접 질문
           </button>
         </div>
       </div>
 
       {/* 탭 콘텐츠 */}
-      {viewMode === "ask" ? (
-        <AskView onSubmit={handleCustomQuestion} />
-      ) : (
+      {viewMode === "browse" ? (
         <BrowseView onSelect={handleSelectQuestion} />
+      ) : (
+        <AskView onSubmit={handleCustomQuestion} />
       )}
     </div>
   );

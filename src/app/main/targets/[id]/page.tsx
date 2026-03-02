@@ -156,7 +156,7 @@ function VideoTab({ target }: { target: EvangelismTarget }) {
       const noteWords = target.notes.split(/[,.\s·]+/).filter(w => w.length >= 2).slice(0, 2);
       words.push(...noteWords);
     }
-    return [...new Set(words)].slice(0, 5);
+    return Array.from(new Set(words)).slice(0, 5);
   }, [target]);
 
   const [customKeyword, setCustomKeyword] = useState("");

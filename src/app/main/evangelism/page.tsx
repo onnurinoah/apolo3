@@ -9,11 +9,11 @@ import CopyButton from "@/components/ui/CopyButton";
 import ShareButton from "@/components/ui/ShareButton";
 
 const RELATIONSHIP_OPTIONS: { value: EvangelismRelationship; label: string }[] = [
-  { value: "family", label: "👨‍👩‍👧 가족" },
-  { value: "friend", label: "😊 친구" },
-  { value: "colleague", label: "💼 직장동료" },
-  { value: "acquaintance", label: "🤝 지인" },
-  { value: "neighbor", label: "🏠 이웃" },
+  { value: "family", label: "가족" },
+  { value: "friend", label: "친구" },
+  { value: "colleague", label: "직장동료" },
+  { value: "acquaintance", label: "지인" },
+  { value: "neighbor", label: "이웃" },
 ];
 
 const SITUATION_PRESETS = [
@@ -28,11 +28,11 @@ const SITUATION_PRESETS = [
 ];
 
 const INTEREST_OPTIONS = [
-  { value: "positive", label: "😊 긍정적" },
-  { value: "curious", label: "🤔 호기심 있음" },
-  { value: "neutral", label: "😐 중립적" },
-  { value: "negative", label: "😕 부정적·거부감" },
-  { value: "hurt", label: "💔 교회에 상처" },
+  { value: "positive", label: "긍정적" },
+  { value: "curious", label: "호기심 있음" },
+  { value: "neutral", label: "중립적" },
+  { value: "negative", label: "부정적·거부감" },
+  { value: "hurt", label: "교회에 상처" },
 ];
 
 export default function EvangelismPage() {
@@ -67,7 +67,7 @@ export default function EvangelismPage() {
       {/* Header */}
       <div className="bg-apolo-yellow-light rounded-2xl px-4 py-3">
         <p className="text-sm text-gray-700">
-          전도 대상자의 상황에 맞는 실전 전도 전략을 제안합니다. 🎯
+          전도 대상자의 상황에 맞는 실전 전도 전략을 제안합니다.
         </p>
       </div>
 
@@ -186,7 +186,7 @@ export default function EvangelismPage() {
         disabled={!isValid || isLoading}
         className="w-full py-4 rounded-2xl bg-apolo-yellow text-gray-900 font-bold text-base disabled:opacity-40 active:bg-apolo-yellow-dark transition-colors"
       >
-        {isLoading ? "생성 중..." : "전도 전략 생성하기 🎯"}
+        {isLoading ? "생성 중..." : "전도 전략 생성하기"}
       </button>
 
       {/* Result */}

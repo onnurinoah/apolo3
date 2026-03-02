@@ -17,28 +17,28 @@ export interface EvangelismTarget {
 }
 
 // 상태 라벨·아이콘
-export const STATUS_CONFIG: Record<TargetStatus, { label: string; emoji: string; color: string }> = {
-  praying: { label: "기도 중", emoji: "", color: "bg-blue-100 text-blue-700" },
-  approaching: { label: "접근 중", emoji: "", color: "bg-amber-100 text-amber-700" },
-  invited: { label: "초대함", emoji: "", color: "bg-purple-100 text-purple-700" },
-  attending: { label: "참석 중", emoji: "", color: "bg-green-100 text-green-700" },
-  decided: { label: "결신", emoji: "", color: "bg-rose-100 text-rose-700" },
+export const STATUS_CONFIG: Record<TargetStatus, { label: string; color: string }> = {
+  praying: { label: "기도 중", color: "bg-blue-100 text-blue-700" },
+  approaching: { label: "접근 중", color: "bg-amber-100 text-amber-700" },
+  invited: { label: "초대함", color: "bg-purple-100 text-purple-700" },
+  attending: { label: "참석 중", color: "bg-green-100 text-green-700" },
+  decided: { label: "결신", color: "bg-rose-100 text-rose-700" },
 };
 
-export const RELATIONSHIP_CONFIG: Record<TargetRelationship, { label: string; emoji: string }> = {
-  family: { label: "가족", emoji: "" },
-  friend: { label: "친구", emoji: "" },
-  colleague: { label: "직장동료", emoji: "" },
-  acquaintance: { label: "지인", emoji: "" },
-  neighbor: { label: "이웃", emoji: "" },
+export const RELATIONSHIP_CONFIG: Record<TargetRelationship, { label: string }> = {
+  family: { label: "가족" },
+  friend: { label: "친구" },
+  colleague: { label: "직장동료" },
+  acquaintance: { label: "지인" },
+  neighbor: { label: "이웃" },
 };
 
-export const INTEREST_CONFIG: Record<TargetInterest, { label: string; emoji: string }> = {
-  positive: { label: "긍정적", emoji: "" },
-  curious: { label: "호기심", emoji: "" },
-  neutral: { label: "중립", emoji: "" },
-  negative: { label: "부정적", emoji: "" },
-  hurt: { label: "교회 상처", emoji: "" },
+export const INTEREST_CONFIG: Record<TargetInterest, { label: string }> = {
+  positive: { label: "긍정적" },
+  curious: { label: "호기심" },
+  neutral: { label: "중립" },
+  negative: { label: "부정적" },
+  hurt: { label: "교회 상처" },
 };
 
 // 다음 액션 추천 로직용

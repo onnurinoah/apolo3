@@ -144,7 +144,7 @@ function AddTargetForm({
       <div>
         <label className="block text-xs font-semibold text-gray-500 mb-1">관계 *</label>
         <div className="flex flex-wrap gap-2">
-          {(Object.entries(RELATIONSHIP_CONFIG) as [TargetRelationship, { label: string; emoji: string }][]).map(
+          {(Object.entries(RELATIONSHIP_CONFIG) as [TargetRelationship, { label: string }][]).map(
             ([key, cfg]) => (
               <button
                 key={key}
@@ -189,7 +189,7 @@ function AddTargetForm({
       <div>
         <label className="block text-xs font-semibold text-gray-500 mb-1">신앙에 대한 태도</label>
         <div className="flex flex-wrap gap-2">
-          {(Object.entries(INTEREST_CONFIG) as [TargetInterest, { label: string; emoji: string }][]).map(
+          {(Object.entries(INTEREST_CONFIG) as [TargetInterest, { label: string }][]).map(
             ([key, cfg]) => (
               <button
                 key={key}

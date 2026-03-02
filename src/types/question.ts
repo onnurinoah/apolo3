@@ -18,7 +18,6 @@ export type CategoryId =
 export interface Category {
   id: CategoryId;
   nameKo: string;
-  icon: string;
 }
 
 export interface AnswerVariant {

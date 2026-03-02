@@ -44,12 +44,18 @@ const ONBOARDING_SLIDES = [
       </div>
     ),
     title: "전도 중 받은 질문에 바로 답변",
-    desc: "120개 DB + AI가 5가지 스타일로\n맞춤 답변을 생성합니다.\n음성으로도 질문할 수 있어요.",
+    desc: "270개+ 변증 DB를 우선 검색하고\n필요할 때만 AI로 보완합니다.\n음성으로도 질문할 수 있어요.",
   },
   {
     icon: (
       <div className="w-20 h-20 rounded-full bg-purple-50 flex items-center justify-center">
-        <span className="text-3xl">🙏</span>
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+          <path d="M12 3V9" stroke="#A855F7" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M9 6H15" stroke="#A855F7" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M8 21H16" stroke="#A855F7" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M10 21V18C10 16.9 10.9 16 12 16C13.1 16 14 16.9 14 18V21" stroke="#A855F7" strokeWidth="1.5" />
+          <path d="M7 12C7 10.3 8.3 9 10 9H14C15.7 9 17 10.3 17 12V14.5C17 15.9 15.9 17 14.5 17H9.5C8.1 17 7 15.9 7 14.5V12Z" stroke="#A855F7" strokeWidth="1.5" />
+        </svg>
       </div>
     ),
     title: "맞춤 기도문 생성",
@@ -58,7 +64,10 @@ const ONBOARDING_SLIDES = [
   {
     icon: (
       <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center">
-        <span className="text-3xl">💛</span>
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+          <path d="M12 21C12 21 4.5 16 4.5 10C4.5 7.5 6.5 5.5 9 5.5C10.5 5.5 11.5 6.2 12 7.2C12.5 6.2 13.5 5.5 15 5.5C17.5 5.5 19.5 7.5 19.5 10C19.5 16 12 21 12 21Z" stroke="#16A34A" strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M8.5 12H11M13 12H15.5" stroke="#16A34A" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
       </div>
     ),
     title: "기도 나눔으로 함께 기도해요",
@@ -67,7 +76,10 @@ const ONBOARDING_SLIDES = [
   {
     icon: (
       <div className="w-20 h-20 rounded-full bg-amber-50 flex items-center justify-center">
-        <span className="text-3xl">☁️</span>
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+          <path d="M8 18H17C19.2 18 21 16.2 21 14C21 11.8 19.2 10 17 10H16.7C16.1 7.7 14.1 6 11.7 6C8.9 6 6.7 8.2 6.7 11V11.3C5.1 11.8 4 13.3 4 15C4 16.7 5.3 18 7 18H8Z" stroke="#D97706" strokeWidth="1.5" strokeLinejoin="round" />
+          <path d="M12 10V16M9.5 13.5H14.5" stroke="#D97706" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
       </div>
     ),
     title: "안전한 클라우드 저장",

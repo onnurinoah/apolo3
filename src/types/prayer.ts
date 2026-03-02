@@ -10,13 +10,14 @@ export type PrayerTopic =
   | "gratitude";
 
 export type PrayerRelationship = "family" | "friend" | "colleague" | "acquaintance" | "self";
+export type PrayerLength = "short" | "medium" | "long";
 
 export interface PrayerInput {
   personName: string;
   relationship: PrayerRelationship;
   topic: PrayerTopic;
   additionalContext?: string;
-  length?: "short" | "medium" | "long";
+  length?: PrayerLength;
 }
 
 export interface PrayerResult {
