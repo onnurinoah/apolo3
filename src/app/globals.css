@@ -2,26 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  body {
+    @apply font-sans text-gray-900 bg-white antialiased;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .chat-bubble {
+    @apply relative px-4 py-3 rounded-bubble max-w-[85%] shadow-bubble;
+  }
+  .chat-bubble-sent {
+    @apply bg-apolo-kakao text-gray-900;
+  }
+  .chat-bubble-received {
+    @apply bg-apolo-bubble-gray text-gray-900;
+  }
+  .chat-bubble-tail-left::before {
+    content: '';
+    @apply absolute top-3 -left-2 w-0 h-0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-right: 8px solid #F1F1F1;
+  }
+  .chat-bubble-tail-right::after {
+    content: '';
+    @apply absolute top-3 -right-2 w-0 h-0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 8px solid #FEE500;
+  }
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
