@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { josa, postfix } from "@/lib/korean";
+import {
+  objective,
+  PersonRelationship,
+  subjective,
+  toReference,
+} from "@/lib/person";
 
 type StrategyTrack =
   | "healing"
@@ -62,16 +67,31 @@ const INTELLECTUAL_KEYWORDS = [
   "질문",
 ];
 
-const nm = (name?: string) => name || "대상자";
-const nObj = (name?: string) => (name ? postfix(name, "을/를") : "대상자를");
-const nSub = (name?: string) => (name ? `${name}${josa(name, "이/")}` : "대상자가");
-
 function normalize(text?: string): string {
   return (text || "").toLowerCase();
 }
 
 function includesAny(source: string, keywords: string[]): boolean {
   return keywords.some((kw) => source.includes(kw));
+}
+
+function resolveRelationship(raw?: string): PersonRelationship {
+  switch ((raw || "").trim()) {
+    case "family":
+    case "friend":
+    case "colleague":
+    case "acquaintance":
+    case "neighbor":
+    case "self":
+    case "parent":
+    case "grandparent":
+    case "sibling":
+    case "coworker":
+    case "former-church-colleague":
+      return raw as PersonRelationship;
+    default:
+      return "acquaintance";
+  }
 }
 
 function classifyTrack(input: {
@@ -99,6 +119,7 @@ function buildStrategy(
   variationIndex: number,
   input: {
     targetName?: string;
+    relationship: PersonRelationship;
     relationshipLabel: string;
     interestLabel: string;
     situation: string;
@@ -106,6 +127,14 @@ function buildStrategy(
   }
 ): string {
   const name = input.targetName;
+  const relationship = input.relationship;
+  const nm = (targetName?: string) =>
+    targetName ? toReference(targetName, relationship) : "대상자";
+  const nObj = (targetName?: string) =>
+    targetName ? objective(targetName, relationship) : "대상자를";
+  const nSub = (targetName?: string) =>
+    targetName ? subjective(targetName, relationship) : "대상자가";
+
   const baseHeader = [
     "전략 요약",
     `${input.relationshipLabel} 관계의 ${nm(name)} · 태도: ${input.interestLabel}`,
@@ -365,9 +394,11 @@ export async function POST(request: NextRequest) {
   const relationshipLabel =
     RELATIONSHIP_LABELS[relationship] || sanitizeRelation(relationship);
   const interestLabel = INTEREST_LABELS[interest] || "미확인";
+  const relationshipValue = resolveRelationship(relationship);
 
   const actionPoints = buildStrategy(track, variationIndex, {
     targetName,
+    relationship: relationshipValue,
     relationshipLabel,
     interestLabel,
     situation,

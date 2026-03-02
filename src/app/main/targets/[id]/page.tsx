@@ -289,6 +289,148 @@ function ResultArea({
   );
 }
 
+type StrategySections = {
+  summary: string[];
+  approach: string;
+  actions: string[];
+  example: string[];
+  prayerPoints: string[];
+};
+
+function parseStrategy(text: string): StrategySections {
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const sections: StrategySections = {
+    summary: [],
+    approach: "",
+    actions: [],
+    example: [],
+    prayerPoints: [],
+  };
+
+  let mode: "summary" | "actions" | "example" | "prayer" = "summary";
+
+  for (const line of lines) {
+    if (line === "전략 요약") continue;
+    if (line.startsWith("접근 방식:")) {
+      sections.approach = line.replace(/^접근 방식:\s*/, "");
+      continue;
+    }
+    if (line === "핵심 실행") {
+      mode = "actions";
+      continue;
+    }
+    if (line === "대화 시작 예시") {
+      mode = "example";
+      continue;
+    }
+    if (line === "기도 포인트") {
+      mode = "prayer";
+      continue;
+    }
+
+    if (mode === "summary") {
+      sections.summary.push(line);
+      continue;
+    }
+    if (mode === "actions") {
+      sections.actions.push(line.replace(/^\d+\.\s*/, ""));
+      continue;
+    }
+    if (mode === "example") {
+      sections.example.push(line.replace(/^["']|["']$/g, ""));
+      continue;
+    }
+    if (mode === "prayer") {
+      sections.prayerPoints.push(line.replace(/^-\s*/, ""));
+    }
+  }
+
+  return sections;
+}
+
+function StrategyResultArea({
+  isLoading,
+  text,
+  onRegenerate,
+}: {
+  isLoading: boolean;
+  text: string;
+  onRegenerate: () => void;
+}) {
+  if (!isLoading && !text) return null;
+
+  if (isLoading) {
+    return (
+      <div className="bg-apolo-kakao rounded-bubble shadow-bubble px-2 inline-block">
+        <LoadingDots />
+      </div>
+    );
+  }
+
+  const sections = parseStrategy(text);
+
+  return (
+    <div className="space-y-3 animate-fade-in-up">
+      <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3">
+        <p className="text-xs font-bold text-gray-700 mb-1">📌 전략요약</p>
+        <div className="space-y-0.5">
+          {sections.summary.map((line, idx) => (
+            <p key={idx} className="text-xs text-gray-600 leading-relaxed">{line}</p>
+          ))}
+        </div>
+      </div>
+
+      {sections.approach && (
+        <div className="bg-amber-50 rounded-2xl border border-amber-100 px-4 py-3">
+          <p className="text-xs font-bold text-amber-800">🎯 접근방식</p>
+          <p className="text-sm font-semibold text-amber-900 mt-1">{sections.approach}</p>
+        </div>
+      )}
+
+      {sections.actions.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3">
+          <p className="text-xs font-bold text-gray-700 mb-1.5">✅ 핵심실행</p>
+          <div className="space-y-1.5">
+            {sections.actions.map((line, idx) => (
+              <p key={idx} className="text-xs text-gray-700 leading-relaxed">{idx + 1}. {line}</p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {sections.example.length > 0 && (
+        <div className="bg-blue-50 rounded-2xl border border-blue-100 px-4 py-3">
+          <p className="text-xs font-bold text-blue-700 mb-1">💬 대화시작예시</p>
+          {sections.example.map((line, idx) => (
+            <p key={idx} className="text-xs text-blue-900 leading-relaxed">&quot;{line}&quot;</p>
+          ))}
+        </div>
+      )}
+
+      {sections.prayerPoints.length > 0 && (
+        <div className="bg-purple-50 rounded-2xl border border-purple-100 px-4 py-3">
+          <p className="text-xs font-bold text-purple-700 mb-1">🙏 기도포인트</p>
+          <div className="space-y-1">
+            {sections.prayerPoints.map((line, idx) => (
+              <p key={idx} className="text-xs text-purple-900 leading-relaxed">- {line}</p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2 flex-wrap">
+        <RefreshButton onClick={onRegenerate} disabled={isLoading} />
+        <CopyButton text={text} />
+        <ShareButton text={text} />
+      </div>
+    </div>
+  );
+}
+
 // ─── 상태 배지 ──────────────────────────────────────────────
 function StatusBadge({ status }: { status: TargetStatus }) {
   const cfg = STATUS_CONFIG[status];
@@ -638,8 +780,9 @@ export default function TargetDetailPage() {
       </div>
 
       {/* ─── 하단 탭: 기도문 받기 | 전도 컨설팅 | 초대메시지 생성 ───── */}
-      <div className="px-4">
-        <div className="flex bg-gray-100 rounded-xl p-1">
+      <div className="px-4 pt-1">
+        <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-3" />
+        <div className="grid grid-cols-3 gap-2">
           {(
             [
               { id: "prayer" as TabId, label: "기도문 받기" },
@@ -650,8 +793,14 @@ export default function TargetDetailPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-2 rounded-lg text-[11px] font-semibold transition-all ${
-                activeTab === tab.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"
+              className={`min-h-[54px] px-2 rounded-2xl border text-[11px] font-bold leading-tight transition-all ${
+                activeTab === tab.id
+                  ? tab.id === "prayer"
+                    ? "bg-blue-500 border-blue-500 text-white shadow-sm"
+                    : tab.id === "strategy"
+                    ? "bg-amber-500 border-amber-500 text-white shadow-sm"
+                    : "bg-purple-500 border-purple-500 text-white shadow-sm"
+                  : "bg-white border-gray-200 text-gray-500 active:bg-gray-50"
               }`}
             >
               {tab.label}
@@ -721,7 +870,7 @@ export default function TargetDetailPage() {
                 전도 컨설팅 받기
               </button>
             )}
-            <ResultArea
+            <StrategyResultArea
               isLoading={evangelism.isLoading}
               text={evangelism.actionPoints}
               onRegenerate={handleStrategyRegen}

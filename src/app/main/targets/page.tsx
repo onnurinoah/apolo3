@@ -103,12 +103,22 @@ function AddTargetForm({
 }) {
   const [name, setName] = useState("");
   const [relationship, setRelationship] = useState<TargetRelationship>("friend");
-  const [situation, setSituation] = useState("");
+  const [selectedSituations, setSelectedSituations] = useState<string[]>([]);
   const [customSituation, setCustomSituation] = useState("");
   const [interest, setInterest] = useState<TargetInterest>("neutral");
   const [notes, setNotes] = useState("");
 
-  const effectiveSituation = customSituation || situation;
+  const effectiveSituation = [...selectedSituations, customSituation.trim()]
+    .filter(Boolean)
+    .join(" · ");
+
+  const toggleSituation = (value: string) => {
+    setSelectedSituations((prev) =>
+      prev.includes(value)
+        ? prev.filter((item) => item !== value)
+        : [...prev, value]
+    );
+  };
 
   const handleSubmit = () => {
     if (!name.trim() || !effectiveSituation) return;
@@ -163,14 +173,14 @@ function AddTargetForm({
 
       {/* 상황 */}
       <div>
-        <label className="block text-xs font-semibold text-gray-500 mb-1">현재 상황 *</label>
+        <label className="block text-xs font-semibold text-gray-500 mb-1">현재 상황 * <span className="font-normal text-gray-400">(복수 선택 가능)</span></label>
         <div className="flex flex-wrap gap-1.5 mb-2">
           {SITUATION_PRESETS.map((s) => (
             <button
               key={s}
-              onClick={() => { setSituation(s); setCustomSituation(""); }}
+              onClick={() => toggleSituation(s)}
               className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
-                situation === s && !customSituation ? "bg-apolo-yellow text-gray-900" : "bg-gray-100 text-gray-500"
+                selectedSituations.includes(s) ? "bg-apolo-yellow text-gray-900" : "bg-gray-100 text-gray-500"
               }`}
             >
               {s}
@@ -181,9 +191,14 @@ function AddTargetForm({
           type="text"
           placeholder="직접 입력..."
           value={customSituation}
-          onChange={(e) => { setCustomSituation(e.target.value); if (e.target.value) setSituation(""); }}
+          onChange={(e) => setCustomSituation(e.target.value)}
           className="w-full px-4 py-2.5 bg-gray-50 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
         />
+        {effectiveSituation && (
+          <p className="mt-1.5 text-[11px] text-gray-400 truncate">
+            선택됨: {effectiveSituation}
+          </p>
+        )}
       </div>
 
       {/* 신앙 태도 */}
