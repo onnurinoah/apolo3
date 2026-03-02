@@ -88,7 +88,7 @@ export default function Onboarding({ onDone }: OnboardingProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-white z-50 flex flex-col max-w-[480px] mx-auto">
+    <div className="fixed inset-0 bg-white z-[70] flex flex-col max-w-[480px] mx-auto">
       {/* 진행 바 */}
       <div className="px-6 pt-6">
         <div className="flex gap-1.5">
@@ -128,7 +128,7 @@ export default function Onboarding({ onDone }: OnboardingProps) {
       </div>
 
       {/* 하단 버튼 */}
-      <div className="px-6 pb-8">
+      <div className="px-6 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
         <button
           onClick={() => (isLast ? handleDone() : setCurrent(current + 1))}
           className="w-full py-4 rounded-2xl bg-apolo-yellow text-gray-900 font-bold text-sm active:bg-apolo-yellow-dark transition-colors"

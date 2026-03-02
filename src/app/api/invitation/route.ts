@@ -8,7 +8,7 @@ import {
   relationshipProfileLabel,
   sanitizeName,
   toAddressee,
-  toReference,
+  toInvitationReference,
 } from "@/lib/person";
 
 type InvitationLength = "short" | "medium" | "long";
@@ -318,6 +318,10 @@ function cleanup(text: string): string {
     .trim();
 }
 
+function normalizeOpening(line: string): string {
+  return line.replace(/^\s*,\s*/, "").trim();
+}
+
 function pick<T>(items: T[], seed: number): T {
   return items[Math.abs(seed) % items.length];
 }
@@ -374,7 +378,7 @@ function buildContext(body: {
 
   return {
     addressee: toAddressee(name, relationship),
-    person: toReference(name, relationship),
+    person: toInvitationReference(name),
     profile,
     relationshipLabel:
       RELATIONSHIP_LABELS[relationship] || relationshipProfileLabel(profile),
@@ -395,14 +399,20 @@ function composeInvitation(
   const seed = Math.abs(Number(variationIndex) || 0);
 
   const lines: string[] = [
-    softenLine(pick(tone.opening, seed)(ctx), ctx.profile, seed + 11, length),
+    normalizeOpening(
+      softenLine(pick(tone.opening, seed)(ctx), ctx.profile, seed + 11, length)
+    ),
     pick(tone.reason, seed + 1)(ctx),
   ];
 
   if (length !== "short") {
     lines.push(pick(tone.reassure, seed + 2)(ctx));
     if (ctx.additionalContext && length === "long") {
-      lines.push(`${ctx.person}의 요즘 상황(${ctx.additionalContext})을 생각하며 더 조심스럽게 연락드렸습니다.`);
+      if (ctx.person === "그분") {
+        lines.push(`요즘 상황(${ctx.additionalContext})을 생각하며 더 조심스럽게 연락드렸습니다.`);
+      } else {
+        lines.push(`${ctx.person}의 요즘 상황(${ctx.additionalContext})을 생각하며 더 조심스럽게 연락드렸습니다.`);
+      }
     }
   }
 

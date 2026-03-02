@@ -1,4 +1,4 @@
-import { josa, postfix } from "@/lib/korean";
+import { josa } from "@/lib/korean";
 
 const FAMILY_TITLES = new Set([
   "엄마",
@@ -99,15 +99,37 @@ function normalizeText(raw?: string): string {
   return sanitizeName(raw).toLowerCase();
 }
 
-function hasHonorific(name: string): boolean {
-  return name.endsWith("님") || name.endsWith("선생님");
+function stripParens(raw: string): string {
+  return raw.replace(/\([^)]*\)/g, "").trim();
+}
+
+function extractTitle(nameRaw: string): string {
+  const candidate = stripParens(sanitizeName(nameRaw));
+  return FAMILY_TITLES.has(candidate) ? candidate : "";
+}
+
+function extractGivenName(nameRaw: string): string {
+  const cleaned = stripParens(sanitizeName(nameRaw)).replace(/님$/g, "").trim();
+  if (!cleaned) return "";
+  if (extractTitle(cleaned)) return cleaned;
+
+  const tokens = cleaned.split(" ").filter(Boolean);
+  if (tokens.length >= 2) {
+    if (/[가-힣]/.test(cleaned)) return tokens[tokens.length - 1];
+    return tokens[0];
+  }
+
+  // 한국어 3~4글자 이름은 성(첫 글자) 제거
+  if (/^[가-힣]{3,4}$/.test(cleaned)) {
+    return cleaned.slice(1);
+  }
+
+  return cleaned;
 }
 
 export function isLikelyTitle(name: string): boolean {
   if (!name) return false;
-  if (FAMILY_TITLES.has(name)) return true;
-  if (name.length <= 2 && /[가-힣]/.test(name)) return true;
-  return false;
+  return Boolean(extractTitle(name));
 }
 
 export function detectRelationshipProfile(input: {
@@ -149,50 +171,66 @@ export function relationshipProfileLabel(profile: RelationshipProfile): string {
 }
 
 export function toAddressee(nameRaw: string, relationship: PersonRelationship): string {
-  const name = sanitizeName(nameRaw);
-  if (!name) {
-    if (relationship === "friend") return "친구";
-    if (relationship === "family" || relationship === "parent") return "가족";
-    return "소중한 분";
-  }
-
-  if (relationship === "friend" && !isLikelyTitle(name) && !hasHonorific(name)) {
-    return `${name}${josa(name, "아/야")}`;
-  }
-
-  if (isLikelyTitle(name)) {
-    return name;
-  }
-
-  return hasHonorific(name) ? name : `${name}님`;
+  // 초대메시지는 명확한 호칭(엄마/아빠/할머니 등)일 때만 이름을 노출한다.
+  void relationship;
+  return extractTitle(nameRaw);
 }
 
 export function toReference(nameRaw: string, relationship: PersonRelationship): string {
-  const name = sanitizeName(nameRaw);
-  if (!name) {
-    if (relationship === "family" || relationship === "parent") return "가족";
-    if (relationship === "friend") return "친구";
-    return "소중한 분";
+  const title = extractTitle(nameRaw);
+  if (title) return title;
+
+  const given = extractGivenName(nameRaw);
+  if (given) return `${given}(님)`;
+
+  if (relationship === "self") return "저 자신";
+  if (relationship === "friend") return "친구";
+  if (
+    relationship === "family" ||
+    relationship === "parent" ||
+    relationship === "grandparent" ||
+    relationship === "sibling"
+  ) {
+    return "가족";
   }
-  if (isLikelyTitle(name) || hasHonorific(name)) {
-    return name;
+  return "이 분";
+}
+
+export function toInvitationReference(nameRaw: string): string {
+  const title = extractTitle(nameRaw);
+  return title || "그분";
+}
+
+function particleBase(nameRaw: string, relationship: PersonRelationship): string {
+  const title = extractTitle(nameRaw);
+  if (title) return title;
+
+  const given = extractGivenName(nameRaw);
+  if (given) return `${given}님`;
+
+  if (relationship === "self") return "저 자신";
+  if (relationship === "friend") return "친구";
+  if (
+    relationship === "family" ||
+    relationship === "parent" ||
+    relationship === "grandparent" ||
+    relationship === "sibling"
+  ) {
+    return "가족";
   }
-  if (relationship === "friend") {
-    return name;
-  }
-  return `${name}님`;
+  return "이 분";
 }
 
 export function objective(nameRaw: string, relationship: PersonRelationship): string {
-  return postfix(toReference(nameRaw, relationship), "을/를");
+  return `${toReference(nameRaw, relationship)}${josa(particleBase(nameRaw, relationship), "을/를")}`;
 }
 
 export function subjective(nameRaw: string, relationship: PersonRelationship): string {
-  return postfix(toReference(nameRaw, relationship), "이/가");
+  return `${toReference(nameRaw, relationship)}${josa(particleBase(nameRaw, relationship), "이/가")}`;
 }
 
 export function withTopic(nameRaw: string, relationship: PersonRelationship): string {
-  return postfix(toReference(nameRaw, relationship), "은/는");
+  return `${toReference(nameRaw, relationship)}${josa(particleBase(nameRaw, relationship), "은/는")}`;
 }
 
 export function eventMeta(date?: string, location?: string): string {
