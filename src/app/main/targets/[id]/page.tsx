@@ -10,6 +10,8 @@ import { prayerTopics } from "@/data/prayerTopics";
 import { PrayerTopic } from "@/types/prayer";
 import {
   TargetStatus,
+  TargetRelationship,
+  TargetInterest,
   STATUS_CONFIG,
   RELATIONSHIP_CONFIG,
   INTEREST_CONFIG,
@@ -31,21 +33,18 @@ const LENGTH_OPTIONS: { id: ContentLength; label: string }[] = [
   { id: "long", label: "깊게" },
 ];
 
-type GrowthStageId = "egg" | "hatching" | "chick" | "young-chicken" | "hen";
+const GROWTH_STAGE_TOTAL = 5;
+const GROWTH_STAGE_COLORS = ["#FFF9DB", "#FFF3BF", "#FFE066", "#FFD43B", "#FFC107"];
 
-type GrowthStage = {
-  id: GrowthStageId;
-  label: string;
-  min: number;
-  max: number | null;
-};
+type GrowthStageId = "egg" | "cracked" | "chick" | "young" | "adult";
+type GrowthStage = { id: GrowthStageId; min: number; max: number | null };
 
 const GROWTH_STAGES: GrowthStage[] = [
-  { id: "egg", label: "알", min: 0, max: 2 },
-  { id: "hatching", label: "부화 직전", min: 3, max: 6 },
-  { id: "chick", label: "병아리", min: 7, max: 13 },
-  { id: "young-chicken", label: "튼튼한 병아리", min: 14, max: 29 },
-  { id: "hen", label: "닭", min: 30, max: null },
+  { id: "egg", min: 0, max: 2 },
+  { id: "cracked", min: 3, max: 6 },
+  { id: "chick", min: 7, max: 13 },
+  { id: "young", min: 14, max: 24 },
+  { id: "adult", min: 25, max: null },
 ];
 
 // ─── 길이 선택 ──────────────────────────────────────────────
@@ -69,20 +68,11 @@ function LengthToggle({ value, onChange }: { value: ContentLength; onChange: (v:
 
 function resolveGrowthStage(streak: number): GrowthStage {
   const safeStreak = Math.max(0, streak);
-  return (
-    GROWTH_STAGES.find((stage) => {
-      if (stage.max === null) return safeStreak >= stage.min;
-      return safeStreak >= stage.min && safeStreak <= stage.max;
-    }) || GROWTH_STAGES[0]
-  );
-}
-
-function stageProgress(stage: GrowthStage, streak: number): number {
-  const safeStreak = Math.max(0, streak);
-  if (stage.max === null) return 1;
-  const span = stage.max - stage.min + 1;
-  const current = safeStreak - stage.min + 1;
-  return Math.max(0.15, Math.min(1, current / span));
+  for (const stage of GROWTH_STAGES) {
+    if (stage.max === null && safeStreak >= stage.min) return stage;
+    if (stage.max !== null && safeStreak >= stage.min && safeStreak <= stage.max) return stage;
+  }
+  return GROWTH_STAGES[0];
 }
 
 function daysUntilNextStage(stage: GrowthStage, streak: number): number | null {
@@ -90,90 +80,168 @@ function daysUntilNextStage(stage: GrowthStage, streak: number): number | null {
   return Math.max(1, stage.max - Math.max(0, streak) + 1);
 }
 
-function GrowthIcon({ stageId }: { stageId: GrowthStageId }) {
-  if (stageId === "egg") {
+function GrowthCharacter({ stage }: { stage: GrowthStage }) {
+  if (stage.id === "egg") {
     return (
-      <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
-        <ellipse cx="26" cy="28" rx="16" ry="20" fill="#FFF8DB" stroke="#FAB005" strokeWidth="2" />
+      <svg width="82" height="82" viewBox="0 0 82 82" fill="none">
+        <defs>
+          <radialGradient id="eggFill" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(33 24) rotate(61) scale(44 39)">
+            <stop stopColor="#FFFFFF" />
+            <stop offset="0.65" stopColor="#FFF3BF" />
+            <stop offset="1" stopColor="#FFE066" />
+          </radialGradient>
+          <filter id="softShadow" x="4" y="8" width="74" height="72" filterUnits="userSpaceOnUse">
+            <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#F1C84A" floodOpacity="0.45" />
+          </filter>
+        </defs>
+        <ellipse cx="41" cy="69" rx="18" ry="4" fill="#FFE8A1" opacity="0.45" />
+        <g filter="url(#softShadow)">
+          <ellipse cx="41" cy="41" rx="22" ry="29" fill="url(#eggFill)" stroke="#FFD43B" strokeWidth="2.5" />
+          <ellipse cx="34" cy="30" rx="8" ry="5" fill="white" opacity="0.45" />
+        </g>
       </svg>
     );
   }
-  if (stageId === "hatching") {
+
+  if (stage.id === "cracked") {
     return (
-      <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
-        <ellipse cx="26" cy="28" rx="16" ry="20" fill="#FFF8DB" stroke="#FAB005" strokeWidth="2" />
-        <path d="M24 17L28 22L24 26L28 31" stroke="#FAB005" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <svg width="82" height="82" viewBox="0 0 82 82" fill="none">
+        <defs>
+          <radialGradient id="crackEggFill" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(34 24) rotate(62) scale(44 39)">
+            <stop stopColor="#FFFFFF" />
+            <stop offset="0.64" stopColor="#FFF0B0" />
+            <stop offset="1" stopColor="#FFD43B" />
+          </radialGradient>
+          <filter id="crackShadow" x="4" y="8" width="74" height="72" filterUnits="userSpaceOnUse">
+            <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#EFBB26" floodOpacity="0.45" />
+          </filter>
+        </defs>
+        <ellipse cx="41" cy="69" rx="18" ry="4" fill="#FFE8A1" opacity="0.45" />
+        <g filter="url(#crackShadow)">
+          <ellipse cx="41" cy="41" rx="22" ry="29" fill="url(#crackEggFill)" stroke="#FFC107" strokeWidth="2.5" />
+        </g>
+        <path
+          d="M37 21L43 28L37 34L46 42L39 50"
+          stroke="#FAB005"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="54" cy="24" r="2.5" fill="#FFE066" />
       </svg>
     );
   }
-  if (stageId === "chick") {
+
+  if (stage.id === "chick") {
     return (
-      <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
-        <circle cx="26" cy="28" r="13" fill="#FFD43B" />
-        <circle cx="22" cy="25" r="1.5" fill="#4B5563" />
-        <path d="M32 27L39 29L32 31V27Z" fill="#FCC419" />
-        <path d="M19 40C20.5 37 22.5 35.5 24.5 35.5M27.5 35.5C29.5 35.5 31.5 37 33 40" stroke="#FAB005" strokeWidth="2" strokeLinecap="round" />
+      <svg width="82" height="82" viewBox="0 0 82 82" fill="none">
+        <defs>
+          <radialGradient id="chickBody" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(36 28) rotate(58) scale(40 34)">
+            <stop stopColor="#FFF9DB" />
+            <stop offset="0.55" stopColor="#FFE066" />
+            <stop offset="1" stopColor="#FFD43B" />
+          </radialGradient>
+          <filter id="chickShadow" x="8" y="10" width="66" height="66" filterUnits="userSpaceOnUse">
+            <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#EAB308" floodOpacity="0.38" />
+          </filter>
+        </defs>
+        <ellipse cx="41" cy="69" rx="18" ry="4" fill="#FFE8A1" opacity="0.45" />
+        <g filter="url(#chickShadow)">
+          <circle cx="41" cy="43" r="19" fill="url(#chickBody)" />
+          <ellipse cx="47.5" cy="47" rx="7" ry="5.2" fill="#FFF3BF" opacity="0.62" />
+        </g>
+        <circle cx="34.5" cy="39.5" r="2.2" fill="#3F3F46" />
+        <circle cx="35.2" cy="38.8" r="0.7" fill="white" />
+        <path d="M50 42L60 45.5L50 49V42Z" fill="#FFC107" />
+        <path d="M31 61L34.5 55M43 61L46.5 55" stroke="#FAB005" strokeWidth="2.3" strokeLinecap="round" />
       </svg>
     );
   }
-  if (stageId === "young-chicken") {
+
+  if (stage.id === "young") {
     return (
-      <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
-        <ellipse cx="27" cy="29" rx="15" ry="12" fill="#FFE066" />
-        <circle cx="33" cy="20" r="7" fill="#FFE066" />
-        <circle cx="31.5" cy="19" r="1.5" fill="#4B5563" />
-        <path d="M39 20L45 22L39 24V20Z" fill="#FCC419" />
-        <path d="M19 42L22 36M29 42L32 36" stroke="#FAB005" strokeWidth="2" strokeLinecap="round" />
+      <svg width="82" height="82" viewBox="0 0 82 82" fill="none">
+        <defs>
+          <radialGradient id="youngBody" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(33 29) rotate(52) scale(44 34)">
+            <stop stopColor="#FFF7CF" />
+            <stop offset="0.55" stopColor="#FFD43B" />
+            <stop offset="1" stopColor="#FFC107" />
+          </radialGradient>
+          <filter id="youngShadow" x="5" y="8" width="74" height="70" filterUnits="userSpaceOnUse">
+            <feDropShadow dx="0" dy="4" stdDeviation="3.5" floodColor="#D9A307" floodOpacity="0.35" />
+          </filter>
+        </defs>
+        <ellipse cx="41" cy="69" rx="20" ry="4.5" fill="#FFE8A1" opacity="0.45" />
+        <g filter="url(#youngShadow)">
+          <ellipse cx="37.5" cy="46.5" rx="20.5" ry="14.5" fill="url(#youngBody)" />
+          <circle cx="53" cy="35" r="10" fill="#FFD43B" />
+          <ellipse cx="30" cy="46.5" rx="7.5" ry="5.2" fill="#FFF3BF" opacity="0.7" />
+        </g>
+        <circle cx="50.5" cy="33.5" r="2.1" fill="#3F3F46" />
+        <circle cx="51.2" cy="32.8" r="0.7" fill="white" />
+        <path d="M60.5 35L70.5 38L60.5 41V35Z" fill="#FAB005" />
+        <path d="M31 63L35 56M44 63L48 56" stroke="#F59F00" strokeWidth="2.4" strokeLinecap="round" />
       </svg>
     );
   }
+
   return (
-    <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
-      <ellipse cx="25" cy="30" rx="16" ry="12" fill="#FFD43B" />
-      <circle cx="34" cy="20" r="8" fill="#FCC419" />
-      <circle cx="32.5" cy="19" r="1.5" fill="#4B5563" />
-      <path d="M41 20L48 22.5L41 25V20Z" fill="#FAB005" />
-      <path d="M40 12.5C38.5 10.5 36.5 10 35 11.5C34.5 10 33.5 9.5 32 10.5C31 11.2 31 12.7 31.5 14H40V12.5Z" fill="#FFE066" />
-      <path d="M17 43L20 36.5M28 43L31 36.5" stroke="#FAB005" strokeWidth="2" strokeLinecap="round" />
-      <path d="M10 28L6 25L9 30" stroke="#FAB005" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="82" height="82" viewBox="0 0 82 82" fill="none">
+      <defs>
+        <radialGradient id="adultBody" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(30 30) rotate(50) scale(46 34)">
+          <stop stopColor="#FFF3BF" />
+          <stop offset="0.52" stopColor="#FFD43B" />
+          <stop offset="1" stopColor="#FFB800" />
+        </radialGradient>
+        <filter id="adultShadow" x="4" y="7" width="76" height="72" filterUnits="userSpaceOnUse">
+          <feDropShadow dx="0" dy="4" stdDeviation="3.5" floodColor="#B8860B" floodOpacity="0.34" />
+        </filter>
+      </defs>
+      <ellipse cx="41" cy="69" rx="21" ry="4.7" fill="#FFE8A1" opacity="0.45" />
+      <g filter="url(#adultShadow)">
+        <ellipse cx="35.5" cy="47" rx="22" ry="15" fill="url(#adultBody)" />
+        <circle cx="53" cy="34" r="11.2" fill="#FFC107" />
+        <ellipse cx="26.5" cy="47" rx="8.5" ry="5.7" fill="#FFF3BF" opacity="0.82" />
+      </g>
+      <path d="M57 23.5C54.8 20 51.8 19.4 49.9 21.9C49.1 19.8 47.6 19.4 45.6 21C44.4 22 44.3 23.9 45 25.9H57V23.5Z" fill="#FFE066" />
+      <circle cx="50.3" cy="32.3" r="2.2" fill="#3F3F46" />
+      <circle cx="51" cy="31.6" r="0.7" fill="white" />
+      <path d="M60.5 34.5L72 38.3L60.5 41.8V34.5Z" fill="#F59F00" />
+      <path d="M28 64L32.4 56M42.5 64L46.9 56" stroke="#F59F00" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M13.5 47L8 43L12 49.5" stroke="#F59F00" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
 // ─── 기도 성장 위젯 ───────────────────────────────────────
-function PrayerGrowthWidget({ streak, totalDays }: { streak: number; totalDays: number }) {
-  const stage = resolveGrowthStage(streak);
-  const progress = stageProgress(stage, streak);
-  const nextIn = daysUntilNextStage(stage, streak);
+function PrayerGrowthWidget({ streak }: { streak: number }) {
+  const safeStreak = Math.max(0, streak);
+  const stage = resolveGrowthStage(safeStreak);
+  const stageIndex = GROWTH_STAGES.findIndex((s) => s.id === stage.id);
+  const nextIn = daysUntilNextStage(stage, safeStreak);
 
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl px-4 py-3">
-      <div className="flex items-center gap-3">
-        <GrowthIcon stageId={stage.id} />
-        <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-semibold text-gray-400">기도 성장</p>
-          <p className="text-sm font-bold text-gray-900 mt-0.5">
-            {stage.label} 단계 · {Math.max(0, streak)}일 연속
-          </p>
-          <p className="text-[11px] text-gray-400 mt-0.5">
-            누적 기도 {Math.max(0, totalDays)}일
-          </p>
-          <div className="mt-2 h-2 rounded-full bg-gray-100 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-amber-300 to-amber-500 transition-all duration-500"
-              style={{ width: `${Math.round(progress * 100)}%` }}
-            />
-          </div>
-          <p className="text-[11px] text-amber-700 mt-1">
-            {nextIn === null ? "최종 단계에 도달했어요." : `다음 단계까지 ${nextIn}일`}
-          </p>
+    <div className="bg-gradient-to-b from-[#FFFCF0] to-white border border-amber-100 rounded-2xl px-4 py-4 text-center">
+      <div className="mt-1 flex justify-center">
+        <div className="scale-[1.18] origin-center">
+          <GrowthCharacter stage={stage} />
         </div>
       </div>
-      <div className="mt-2 flex items-center justify-between text-[10px] text-gray-400">
-        <span>알</span>
-        <span>부화</span>
-        <span>병아리</span>
-        <span>닭</span>
+      <p className="mt-2 text-sm font-bold text-gray-900">{safeStreak}일 연속</p>
+      <p className="mt-0.5 text-[11px] text-amber-700">
+        {nextIn === null ? "성장 완료" : `다음 성장까지 ${nextIn}일`}
+      </p>
+      <div className="mt-2.5 grid grid-cols-5 gap-1.5">
+        {Array.from({ length: GROWTH_STAGE_TOTAL }, (_, idx) => {
+          const active = stageIndex >= idx;
+          return (
+            <div
+              key={idx}
+              className={`h-1.5 rounded-full ${active ? "" : "bg-gray-100"}`}
+              style={active ? { backgroundColor: GROWTH_STAGE_COLORS[idx] } : undefined}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -236,13 +304,19 @@ export default function TargetDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const { targets, loaded, prayToday, hasPrayedToday, updateStatus, removeTarget } = useTargets();
+  const { targets, loaded, prayToday, hasPrayedToday, updateStatus, removeTarget, updateTarget } = useTargets();
   const evangelism = useEvangelism();
   const invitation = useInvitation();
   const prayer = usePrayer();
 
   const [activeTab, setActiveTab] = useState<TabId>("prayer");
-  const [showDelete, setShowDelete] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editRelationship, setEditRelationship] = useState<TargetRelationship>("friend");
+  const [editSituation, setEditSituation] = useState("");
+  const [editInterest, setEditInterest] = useState<TargetInterest>("neutral");
+  const [editNotes, setEditNotes] = useState("");
 
   // Prayer options
   const [prayerTopic, setPrayerTopic] = useState<PrayerTopic>("salvation");
@@ -302,13 +376,15 @@ export default function TargetDetailPage() {
   };
 
   // 기도문 생성
+  const prayerContextText = (target?.notes || "").trim() || (target?.situation || "").trim();
+
   const handlePrayer = () => {
     if (!target) return;
     prayer.generate({
       personName: target.name,
       relationship: target.relationship,
       topic: prayerTopic,
-      additionalContext: `${target.situation}. ${target.notes || ""}`,
+      additionalContext: prayerContextText,
       length: prayerLength,
     });
   };
@@ -318,7 +394,7 @@ export default function TargetDetailPage() {
       personName: target.name,
       relationship: target.relationship,
       topic: prayerTopic,
-      additionalContext: `${target.situation}. ${target.notes || ""}`,
+      additionalContext: prayerContextText,
       length: prayerLength,
     });
   };
@@ -340,6 +416,31 @@ export default function TargetDetailPage() {
   const rel = RELATIONSHIP_CONFIG[target.relationship];
   const interestCfg = INTEREST_CONFIG[target.interest];
   const currentStatusIdx = STATUS_ORDER.indexOf(target.status);
+
+  const openEditPanel = () => {
+    setEditName(target.name);
+    setEditRelationship(target.relationship);
+    setEditSituation(target.situation);
+    setEditInterest(target.interest);
+    setEditNotes(target.notes || "");
+    setIsEditing(true);
+    setShowMenu(false);
+  };
+
+  const saveTargetEdit = () => {
+    const name = editName.trim();
+    const situation = editSituation.trim();
+    if (!name || !situation) return;
+
+    updateTarget(id, {
+      name,
+      relationship: editRelationship,
+      situation,
+      interest: editInterest,
+      notes: editNotes.trim() || undefined,
+    });
+    setIsEditing(false);
+  };
 
   return (
     <div className="flex flex-col min-h-full">
@@ -363,20 +464,118 @@ export default function TargetDetailPage() {
               {rel.label} · {interestCfg.label} · {target.situation}
             </p>
           </div>
-          <button onClick={() => setShowDelete(!showDelete)} className="text-gray-300 text-lg">⋮</button>
+          <button onClick={() => setShowMenu(!showMenu)} className="text-gray-300 text-lg">⋮</button>
         </div>
 
-        {showDelete && (
+        {showMenu && (
           <div className="mt-2 flex justify-end">
-            <button
-              onClick={() => { removeTarget(id); router.push("/main/targets"); }}
-              className="px-3 py-1.5 bg-red-50 text-red-500 rounded-xl text-xs font-medium"
-            >
-              삭제하기
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={openEditPanel}
+                className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-xl text-xs font-medium"
+              >
+                정보 수정
+              </button>
+              <button
+                onClick={() => { removeTarget(id); router.push("/main/targets"); }}
+                className="px-3 py-1.5 bg-red-50 text-red-500 rounded-xl text-xs font-medium"
+              >
+                삭제하기
+              </button>
+            </div>
           </div>
         )}
       </div>
+
+      {isEditing && (
+        <div className="px-4 py-3 border-b border-gray-100 bg-amber-50/40">
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-amber-700">대상자 정보 수정</p>
+
+            <div>
+              <p className="text-[11px] font-semibold text-gray-500 mb-1">이름/호칭</p>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="w-full px-3 py-2.5 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
+              />
+            </div>
+
+            <div>
+              <p className="text-[11px] font-semibold text-gray-500 mb-1">관계</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(Object.entries(RELATIONSHIP_CONFIG) as [TargetRelationship, { label: string }][]).map(
+                  ([key, cfg]) => (
+                    <button
+                      key={key}
+                      onClick={() => setEditRelationship(key)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                        editRelationship === key ? "bg-apolo-yellow text-gray-900" : "bg-white text-gray-500 border border-gray-100"
+                      }`}
+                    >
+                      {cfg.label}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-semibold text-gray-500 mb-1">상황</p>
+              <input
+                type="text"
+                value={editSituation}
+                onChange={(e) => setEditSituation(e.target.value)}
+                className="w-full px-3 py-2.5 bg-white rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
+              />
+            </div>
+
+            <div>
+              <p className="text-[11px] font-semibold text-gray-500 mb-1">신앙 태도</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(Object.entries(INTEREST_CONFIG) as [TargetInterest, { label: string }][]).map(
+                  ([key, cfg]) => (
+                    <button
+                      key={key}
+                      onClick={() => setEditInterest(key)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                        editInterest === key ? "bg-apolo-yellow text-gray-900" : "bg-white text-gray-500 border border-gray-100"
+                      }`}
+                    >
+                      {cfg.label}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-semibold text-gray-500 mb-1">메모</p>
+              <textarea
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                className="w-full min-h-[66px] px-3 py-2.5 bg-white rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsEditing(false)}
+                className="flex-1 py-2.5 rounded-xl bg-white text-gray-500 text-sm font-semibold border border-gray-200"
+              >
+                취소
+              </button>
+              <button
+                onClick={saveTargetEdit}
+                className="flex-1 py-2.5 rounded-xl bg-apolo-yellow text-gray-900 text-sm font-bold"
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── 상태 진행바 ─────────────────────────────────── */}
       <div className="px-4 py-3">
@@ -421,7 +620,7 @@ export default function TargetDetailPage() {
 
       {/* ─── 기도 성장 ───────────────────────────────────── */}
       <div className="px-4 pb-4">
-        <PrayerGrowthWidget streak={streak} totalDays={target.prayerDates.length} />
+        <PrayerGrowthWidget streak={streak} />
       </div>
 
       {/* ─── 다음 액션 추천 ─────────────────────────────── */}

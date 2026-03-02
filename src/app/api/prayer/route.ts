@@ -35,6 +35,7 @@ type PrayerContext = {
   profile: RelationshipProfile;
   topic: string;
   additionalContext?: string;
+  contextSnippet?: string;
   targetRef: string;
   targetObj: string;
   targetSub: string;
@@ -185,6 +186,23 @@ function pick<T>(items: T[], seed: number): T {
   return items[Math.abs(seed) % items.length];
 }
 
+function summarizeContext(raw?: string): string | undefined {
+  const cleaned = sanitizeName(raw)
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return undefined;
+
+  const chunks = cleaned
+    .split(/[.!?]/)
+    .map((c) => c.trim())
+    .filter(Boolean);
+
+  const first = (chunks[0] || cleaned).replace(/^요즘\s+/, "");
+  if (!first) return undefined;
+  return first.length > 24 ? `${first.slice(0, 24)}...` : first;
+}
+
 function resolveRelationship(raw?: string): PersonRelationship {
   const value = sanitizeName(raw) as PersonRelationship;
   switch (value) {
@@ -228,6 +246,7 @@ function buildContext(body: {
     profile,
     topic,
     additionalContext: sanitizeName(body.additionalContext),
+    contextSnippet: summarizeContext(body.additionalContext),
     targetRef: toReference(name, relationship),
     targetObj: objective(name, relationship),
     targetSub: subjective(name, relationship),
@@ -243,21 +262,25 @@ function shortBody(style: PrayerStyleId, ctx: PrayerContext): string[] {
   ];
 }
 
-function mediumBody(style: PrayerStyleId, ctx: PrayerContext): string[] {
+function mediumBody(style: PrayerStyleId, ctx: PrayerContext, variationIndex: number): string[] {
   const lines = [
     "자비로우신 하나님 아버지,",
     `오늘 ${ctx.targetObj} 올려 드리며 간구합니다.`,
     `${ctx.targetSub} ${ctx.topic}의 문제 앞에서 두려움보다 믿음을 선택하게 하옵소서.`,
     `${STYLE_TITLE[style]}의 자리에서 주님의 뜻을 보게 하시고, 말씀의 약속을 붙들게 하옵소서 (${STYLE_VERSE[style]}).`,
   ];
-  if (ctx.additionalContext) {
-    lines.push(`${ctx.targetTopic} 현재 ${ctx.additionalContext}의 상황을 지나고 있습니다.`);
+
+  if (ctx.contextSnippet && variationIndex % 3 === 0) {
+    lines.push(`특별히 요즘 ${ctx.contextSnippet}의 시간 속에서도 시야가 좁아지지 않게 하옵소서.`);
+  } else if (variationIndex % 2 === 0) {
+    lines.push(`${ctx.targetTopic} 마주한 현실 속에서도 주님의 평안을 먼저 누리게 하옵소서.`);
   }
+
   lines.push("필요한 사람과 길을 만나게 하시고, 복음의 소망을 놓치지 않게 하옵소서.");
   return lines;
 }
 
-function longBody(style: PrayerStyleId, ctx: PrayerContext): string[] {
+function longBody(style: PrayerStyleId, ctx: PrayerContext, variationIndex: number): string[] {
   const lines = [
     "신실하신 하나님 아버지,",
     `오늘도 ${ctx.targetObj} 위해 포기하지 않고 중보합니다.`,
@@ -266,8 +289,10 @@ function longBody(style: PrayerStyleId, ctx: PrayerContext): string[] {
     `${STYLE_VERSE[style]} 말씀을 마음 깊이 새기게 하시고, 현실의 두려움을 이길 담대함을 주옵소서.`,
   ];
 
-  if (ctx.additionalContext) {
-    lines.push(`${ctx.targetTopic} 현재 ${ctx.additionalContext}의 시간을 지나고 있으니 주께서 친히 위로해 주옵소서.`);
+  if (ctx.contextSnippet && variationIndex % 2 === 0) {
+    lines.push(`특별히 ${ctx.contextSnippet}으로 마음이 지칠 때에도 주님의 위로를 분명히 경험하게 하옵소서.`);
+  } else {
+    lines.push(`${ctx.targetTopic} 문제를 지나는 모든 날에 낙심보다 소망이 앞서게 하옵소서.`);
   }
 
   lines.push(
@@ -291,8 +316,8 @@ function composePrayer(
     length === "short"
       ? shortBody(style, ctx)
       : length === "long"
-      ? longBody(style, ctx)
-      : mediumBody(style, ctx);
+      ? longBody(style, ctx, variationIndex)
+      : mediumBody(style, ctx, variationIndex);
 
   const content = [
     ...base,
