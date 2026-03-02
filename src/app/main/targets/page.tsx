@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useTargets, getPrayStreak, getDaysSinceLastPrayer } from "@/hooks/useTargets";
 import Onboarding, { useOnboarding } from "@/components/Onboarding";
@@ -25,66 +25,75 @@ function StatusBadge({ status }: { status: EvangelismTarget["status"] }) {
 }
 
 // ─── 대상자 카드 ─────────────────────────────────────────────
-function TargetCard({ target }: { target: EvangelismTarget }) {
+function TargetCard({
+  target,
+  onDelete,
+}: {
+  target: EvangelismTarget;
+  onDelete: (t: EvangelismTarget) => void;
+}) {
   const streak = getPrayStreak(target);
   const daysSince = getDaysSinceLastPrayer(target);
   const rel = RELATIONSHIP_CONFIG[target.relationship];
   const nextAction = NEXT_ACTIONS[target.status][0];
 
   return (
-    <Link
-      href={`/main/targets/${target.id}`}
-      className="block bg-white rounded-2xl shadow-card border border-gray-50 px-4 py-4 active:bg-gray-50 transition-colors"
-    >
-      <div className="flex items-start justify-between gap-3">
-        {/* 왼쪽: 이름 + 정보 */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-base font-bold text-gray-900">{target.name}</span>
-            <StatusBadge status={target.status} />
-          </div>
+    <div className="relative bg-white rounded-2xl shadow-card border border-gray-50">
+      <button
+        onClick={() => onDelete(target)}
+        className="absolute top-3 right-3 z-10 px-2 py-1 rounded-lg bg-red-50 text-red-500 text-[10px] font-semibold"
+      >
+        삭제
+      </button>
+      <Link
+        href={`/main/targets/${target.id}`}
+        className="block px-4 py-4 active:bg-gray-50 transition-colors rounded-2xl"
+      >
+        <div className="flex items-start justify-between gap-3">
+          {/* 왼쪽: 이름 + 정보 */}
+          <div className="flex-1 min-w-0 pr-12">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-base font-bold text-gray-900">{target.name}</span>
+              <StatusBadge status={target.status} />
+            </div>
 
-          <p className="text-xs text-gray-400 mb-2">
-            {rel.label}
-            {target.situation && <> · {target.situation}</>}
-          </p>
-
-          {/* 기도 스트릭 */}
-          <div className="flex items-center gap-3">
-            {streak > 0 && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-600">
-                {streak}일 연속 기도
-              </span>
-            )}
-            {daysSince !== null && daysSince > 0 && (
-              <span className="text-[11px] text-gray-300">
-                {daysSince === 1 ? "어제" : `${daysSince}일 전`} 기도
-              </span>
-            )}
-            {daysSince === 0 && (
-              <span className="text-[11px] text-green-500 font-medium">오늘 기도 완료 ✓</span>
-            )}
-            {daysSince === null && (
-              <span className="text-[11px] text-gray-300">아직 기도 기록 없음</span>
-            )}
-          </div>
-
-          {/* 다음 액션 추천 */}
-          <div className="mt-2 px-3 py-1.5 bg-amber-50 rounded-xl">
-            <p className="text-[11px] text-amber-700">
-              다음 단계: {nextAction}
+            <p className="text-xs text-gray-400 mb-2">
+              {rel.label}
+              {target.situation && <> · {target.situation}</>}
             </p>
+
+            {/* 기도 스트릭 */}
+            <div className="flex items-center gap-3">
+              {streak > 0 && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-600">
+                  {streak}일 연속 기도
+                </span>
+              )}
+              {daysSince !== null && daysSince > 0 && (
+                <span className="text-[11px] text-gray-300">
+                  {daysSince === 1 ? "어제" : `${daysSince}일 전`} 기도
+                </span>
+              )}
+              {daysSince === 0 && (
+                <span className="text-[11px] text-green-500 font-medium">오늘 기도 완료 ✓</span>
+              )}
+              {daysSince === null && (
+                <span className="text-[11px] text-gray-300">아직 기도 기록 없음</span>
+              )}
+            </div>
+
+            <p className="mt-2 text-[11px] text-amber-700 truncate">다음: {nextAction}</p>
+          </div>
+
+          {/* 오른쪽: 화살표 */}
+          <div className="flex-shrink-0 mt-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M9 18L15 12L9 6" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round" />
+            </svg>
           </div>
         </div>
-
-        {/* 오른쪽: 화살표 */}
-        <div className="flex-shrink-0 mt-2">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M9 18L15 12L9 6" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </div>
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
 
@@ -277,9 +286,23 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 
 // ─── 메인 페이지 ────────────────────────────────────────────
 export default function TargetsPage() {
-  const { targets, loaded, addTarget } = useTargets();
+  const { targets, loaded, addTarget, removeTarget, restoreTarget } = useTargets();
   const { show: showOnboarding, done: onboardingDone } = useOnboarding();
   const [showForm, setShowForm] = useState(false);
+  const [recentlyDeleted, setRecentlyDeleted] = useState<EvangelismTarget | null>(null);
+
+  useEffect(() => {
+    if (!recentlyDeleted) return;
+    const timer = window.setTimeout(() => setRecentlyDeleted(null), 4500);
+    return () => window.clearTimeout(timer);
+  }, [recentlyDeleted]);
+
+  const missionTarget = targets.find((t) => !t.prayerDates.includes(new Date().toISOString().split("T")[0])) || targets[0];
+  const missionText = missionTarget
+    ? !missionTarget.prayerDates.includes(new Date().toISOString().split("T")[0])
+      ? `${missionTarget.name}을 위해 오늘 기도 체크`
+      : `${missionTarget.name}에게 안부 메시지 보내기`
+    : "오늘 대상자 1명 등록하기";
 
   const handleAdd = useCallback(
     (input: Omit<EvangelismTarget, "id" | "createdAt" | "prayerDates" | "status">) => {
@@ -287,6 +310,20 @@ export default function TargetsPage() {
     },
     [addTarget]
   );
+
+  const handleDelete = useCallback(
+    (target: EvangelismTarget) => {
+      removeTarget(target.id);
+      setRecentlyDeleted(target);
+    },
+    [removeTarget]
+  );
+
+  const handleUndoDelete = useCallback(() => {
+    if (!recentlyDeleted) return;
+    restoreTarget(recentlyDeleted);
+    setRecentlyDeleted(null);
+  }, [recentlyDeleted, restoreTarget]);
 
   if (showOnboarding) return <Onboarding onDone={onboardingDone} />;
   if (!loaded) return null;
@@ -301,17 +338,14 @@ export default function TargetsPage() {
             <p className="text-xs text-gray-400 mt-0.5">{targets.length}명을 위해 기도하고 있어요</p>
           )}
         </div>
-        {targets.length > 0 && !showForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="w-9 h-9 rounded-full bg-apolo-yellow flex items-center justify-center active:bg-apolo-yellow-dark transition-colors"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
-          </button>
-        )}
       </div>
+
+      {!showForm && (
+        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-2xl px-4 py-3">
+          <p className="text-[11px] font-semibold text-amber-700">오늘의 한 걸음</p>
+          <p className="text-sm font-bold text-amber-900 mt-0.5">{missionText}</p>
+        </div>
+      )}
 
       {/* 추가 폼 */}
       {showForm && (
@@ -324,12 +358,36 @@ export default function TargetsPage() {
       ) : (
         <div className="space-y-3">
           {targets.map((target) => (
-            <TargetCard key={target.id} target={target} />
+            <TargetCard key={target.id} target={target} onDelete={handleDelete} />
           ))}
         </div>
       )}
 
-      <div className="h-4" />
+      <div className="h-16" />
+
+      {!showForm && (
+        <button
+          onClick={() => setShowForm(true)}
+          className="fixed bottom-24 right-5 z-40 w-14 h-14 rounded-full bg-apolo-yellow shadow-lg flex items-center justify-center active:bg-apolo-yellow-dark"
+          aria-label="대상자 추가"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2.7" strokeLinecap="round" />
+          </svg>
+        </button>
+      )}
+
+      {recentlyDeleted && (
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-[7.2rem] z-40 w-[calc(100%-2rem)] max-w-[448px] bg-gray-900 text-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-lg">
+          <p className="text-xs truncate">{recentlyDeleted.name} 삭제됨</p>
+          <button
+            onClick={handleUndoDelete}
+            className="ml-3 px-2.5 py-1 rounded-lg bg-white/20 text-xs font-semibold"
+          >
+            되돌리기
+          </button>
+        </div>
+      )}
     </div>
   );
 }

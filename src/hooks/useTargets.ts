@@ -114,6 +114,15 @@ export function useTargets() {
     [targets, persist]
   );
 
+  const restoreTarget = useCallback(
+    (target: EvangelismTarget) => {
+      const exists = targets.some((t) => t.id === target.id);
+      if (exists) return;
+      persist([target, ...targets]);
+    },
+    [targets, persist]
+  );
+
   const updateStatus = useCallback(
     (id: string, status: TargetStatus) => {
       updateTarget(id, { status });
@@ -152,6 +161,7 @@ export function useTargets() {
     targets,
     loaded,
     addTarget,
+    restoreTarget,
     updateTarget,
     removeTarget,
     updateStatus,
