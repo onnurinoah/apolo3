@@ -9,7 +9,18 @@ export type PrayerTopic =
   | "guidance"
   | "gratitude";
 
-export type PrayerRelationship = "family" | "friend" | "colleague" | "acquaintance" | "self";
+export type PrayerRelationship =
+  | "family"
+  | "parent"
+  | "grandparent"
+  | "sibling"
+  | "friend"
+  | "colleague"
+  | "coworker"
+  | "acquaintance"
+  | "neighbor"
+  | "former-church-colleague"
+  | "self";
 export type PrayerLength = "short" | "medium" | "long";
 
 export interface PrayerInput {

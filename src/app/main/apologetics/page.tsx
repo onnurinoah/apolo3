@@ -14,7 +14,6 @@ import RefreshButton from "@/components/ui/RefreshButton";
 import CopyButton from "@/components/ui/CopyButton";
 import ShareButton from "@/components/ui/ShareButton";
 import StyleBadge from "@/components/ui/StyleBadge";
-import Onboarding, { useOnboarding } from "@/components/Onboarding";
 
 interface QuestionItem {
   id: string;
@@ -348,7 +347,6 @@ function BrowseView({ onSelect }: { onSelect: (q: QuestionItem) => void }) {
 
 // ─── Main Page ────────────────────────────────────────────────
 export default function ApologeticsPage() {
-  const { show: showOnboarding, done: onboardingDone } = useOnboarding();
   const [viewMode, setViewMode] = useState<ViewMode>("browse");
   const [selectedQuestion, setSelectedQuestion] = useState<QuestionItem | null>(null);
 
@@ -363,8 +361,6 @@ export default function ApologeticsPage() {
   const handleSelectQuestion = useCallback((q: QuestionItem) => {
     setSelectedQuestion(q);
   }, []);
-
-  if (showOnboarding) return <Onboarding onDone={onboardingDone} />;
 
   if (selectedQuestion) {
     return <AnswerView question={selectedQuestion} onBack={() => setSelectedQuestion(null)} />;

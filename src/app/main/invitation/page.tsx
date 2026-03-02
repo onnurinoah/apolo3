@@ -12,10 +12,15 @@ import ShareButton from "@/components/ui/ShareButton";
 type MessageLength = "short" | "medium" | "long";
 
 const RELATIONSHIP_OPTIONS: { value: RelationshipType; label: string }[] = [
-  { value: "family", label: "가족" },
+  { value: "parent", label: "부모님" },
+  { value: "grandparent", label: "조부모님" },
+  { value: "sibling", label: "형제자매" },
   { value: "friend", label: "친구" },
-  { value: "colleague", label: "직장동료" },
+  { value: "coworker", label: "직장동료" },
   { value: "acquaintance", label: "지인" },
+  { value: "former-church-colleague", label: "옛 교회동료" },
+  { value: "neighbor", label: "이웃" },
+  { value: "family", label: "가족(기타)" },
 ];
 
 const LENGTH_OPTIONS: { value: MessageLength; label: string }[] = [

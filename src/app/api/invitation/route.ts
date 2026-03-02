@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAIClient } from "@/lib/openai";
-import { INVITATION_PROMPT } from "@/lib/prompts";
-import { fixParticles, josa } from "@/lib/korean";
+import { fixParticles } from "@/lib/korean";
 import {
+  detectRelationshipProfile,
   eventMeta,
+  PersonRelationship,
+  RelationshipProfile,
+  relationshipProfileLabel,
   sanitizeName,
   toAddressee,
   toReference,
@@ -14,59 +16,295 @@ type InvitationLength = "short" | "medium" | "long";
 type TemplateContext = {
   addressee: string;
   person: string;
-  relationship: string;
+  profile: RelationshipProfile;
+  relationshipLabel: string;
   eventType: string;
   date?: string;
   location?: string;
+  additionalContext?: string;
   meta: string;
 };
 
-type InvitationTemplate = (ctx: TemplateContext) => string;
+type LineBuilder = (ctx: TemplateContext) => string;
+
+type ProfileTone = {
+  opening: LineBuilder[];
+  reason: LineBuilder[];
+  reassure: LineBuilder[];
+  ask: LineBuilder[];
+  closing: LineBuilder[];
+};
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   family: "가족",
+  parent: "부모님",
+  grandparent: "조부모님",
+  sibling: "형제자매",
   friend: "친구",
   colleague: "직장동료",
+  coworker: "직장동료",
   acquaintance: "지인",
+  neighbor: "이웃",
+  "former-church-colleague": "옛 교회동료",
 };
 
-const SHORT_TEMPLATES: InvitationTemplate[] = [
-  (ctx) => `${ctx.addressee}, 이번 ${ctx.eventType}에 함께 오실래요?\n부담 없이 편하게 와서 쉬어가셔도 좋아요.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 요즘 문득 생각이 나서 연락드려요.\n이번 ${ctx.eventType}에 잠깐 들르실 수 있을까요?\n함께 가드릴게요.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 마음이 조금 지칠 때 조용히 쉬어갈 자리가 있어요.\n${ctx.eventType}에 한번 같이 가보면 좋겠습니다.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 오랜만에 안부 전합니다.\n이번 ${ctx.eventType}${josa(ctx.eventType, "은/는")} 부담 없는 모임이에요.\n시간 되시면 함께해요.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 이번 주에 ${ctx.eventType}가 있어요.\n강요하는 자리가 아니라 편히 앉아 듣고 쉬는 시간이어서 초대드리고 싶었습니다.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 짧게 안부 전해요.\n${ctx.eventType}에 함께 오시면 제가 옆에서 안내해드릴게요.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 이번 ${ctx.eventType}에서 따뜻한 시간을 같이 보내면 좋겠어요.\n가능하시면 편하게 답 주세요.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 혹시 이번 ${ctx.eventType}에 잠깐 시간 내실 수 있을까요?\n어색하지 않게 제가 함께하겠습니다.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-];
+const PROFILE_EMOJIS: Partial<Record<RelationshipProfile, string[]>> = {
+  parent: ["🙂", "🙏"],
+  grandparent: ["🙏", "🙂"],
+  sibling: ["🙂", "😊"],
+  family: ["😊", "💛"],
+  friend: ["😊", "🙂", "✨"],
+  coworker: ["🙂"],
+  acquaintance: ["🙂"],
+  "former-church-colleague": ["🙏", "🙂"],
+  neighbor: ["🙂"],
+  self: ["🙏", "🙂"],
+  general: ["🙂"],
+};
 
-const MEDIUM_TEMPLATES: InvitationTemplate[] = [
-  (ctx) => `${ctx.addressee}, 안부 전합니다.\n요즘 마음이 분주할 때 잠시 멈춰 쉬는 시간이 필요하다는 생각이 들어서요.\n이번 ${ctx.eventType}에 함께 가면 좋겠습니다.\n편하게 와서 듣고 쉬어가셔도 충분해요.\n제가 처음부터 끝까지 같이 있겠습니다.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 평소에 한번 초대드리고 싶었는데 이제야 조심스럽게 말씀드립니다.\n이번 ${ctx.eventType}${josa(ctx.eventType, "은/는")} 부담 없이 참여할 수 있는 자리입니다.\n무언가를 강요하는 분위기가 아니고, 삶을 돌아보는 시간이 중심이에요.\n괜찮으시면 함께해 주세요.\n제가 동행하겠습니다.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 제가 요즘 붙잡고 있는 위로를 ${ctx.person}과 나누고 싶었습니다.\n그래서 이번 ${ctx.eventType}에 초대드려요.\n처음 오셔도 어색하지 않게 안내해 드릴 수 있습니다.\n부담은 내려놓고, 마음 편히 와주세요.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 갑작스러운 연락이 실례가 되지 않았으면 합니다.\n이번 ${ctx.eventType}에서 삶에 도움이 되는 메시지를 함께 듣고 싶어 연락드렸습니다.\n짧게 머무르셔도 괜찮고, 조용히 보고 가셔도 괜찮습니다.\n가능하시다면 함께 가겠습니다.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 요즘 어떻게 지내시는지 궁금했습니다.\n이번 ${ctx.eventType}${josa(ctx.eventType, "으로/로")} 모임이 있어 조심스럽게 초대드립니다.\n편안한 분위기에서 말씀을 듣고 서로 인사 나누는 자리입니다.\n시간이 허락되면 함께해 주세요.\n제가 곁에서 안내해 드릴게요.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 예전부터 꼭 한번 모시고 싶었습니다.\n이번 ${ctx.eventType}는 처음 오시는 분도 편히 참여할 수 있도록 준비된 자리예요.\n가볍게 와서 분위기만 느껴보셔도 됩니다.\n원하시면 끝나고 따뜻한 차 한 잔도 함께해요.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 저에게 소중한 시간을 ${ctx.person}과도 나누고 싶어 연락드렸습니다.\n이번 ${ctx.eventType}에 함께 오시면 좋겠습니다.\n편하게 듣고 쉬어가는 시간이라 부담이 적습니다.\n괜찮으시면 답 주시고, 제가 같이 이동하겠습니다.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 요즘 상황 속에서 작은 위로가 필요하실 것 같아 생각이 났습니다.\n이번 ${ctx.eventType}에 함께하면 힘을 얻는 시간이 될 것 같아요.\n강요가 아니라 진심 어린 초대입니다.\n시간이 맞으면 같이 가요.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-];
-
-const LONG_TEMPLATES: InvitationTemplate[] = [
-  (ctx) => `${ctx.addressee}, 안부 전합니다.\n요즘 하루가 빠르게 지나가다 보니 마음을 정리할 시간이 부족하다는 생각이 들 때가 많습니다.\n저도 그럴 때 공동체 안에서 잠시 멈추고 숨을 고르며 큰 위로를 얻곤 했습니다.\n그래서 이번 ${ctx.eventType}에 ${ctx.person}을 진심으로 초대드리고 싶었습니다.\n처음 오시는 분도 어색하지 않도록 충분히 안내해 드리고, 무리한 참여를 요청하지도 않습니다.\n편하게 듣고 쉬어가셔도 좋고, 분위기만 느끼고 가셔도 괜찮습니다.\n괜찮으시면 함께 가겠습니다.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 요즘 지내시는 모습을 떠올리며 조심스럽게 연락드립니다.\n저는 힘든 시기마다 사람들과 함께 예배드리는 시간이 생각보다 큰 힘이 된다는 걸 자주 경험했습니다.\n이번 ${ctx.eventType}에도 그런 잔잔한 위로와 회복의 시간이 준비되어 있어요.\n말씀을 듣고, 조용히 생각을 정리하고, 필요한 만큼만 머물다 가셔도 됩니다.\n${ctx.person}에게 부담이 되지 않도록 제가 처음부터 끝까지 동행하겠습니다.\n가능하시면 함께해 주세요.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 평소에 꼭 한번 모시고 싶었는데 이제야 말씀드립니다.\n이번 ${ctx.eventType}${josa(ctx.eventType, "은/는")} 처음 오시는 분을 배려해 차분하게 진행되는 모임입니다.\n억지로 무언가를 하게 하지 않고, 듣고 쉬고 돌아보는 시간이 중심입니다.\n${ctx.person}이 편히 참여할 수 있도록 제가 곁에서 안내할게요.\n괜찮으시면 이번 기회에 함께해 주시면 감사하겠습니다.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 갑작스러운 연락이 놀라우실 수 있어 먼저 양해를 구합니다.\n저는 요즘 삶을 정돈하는 데 도움이 되는 시간을 꾸준히 갖고 있는데, 그중 하나가 예배 자리였습니다.\n그래서 이번 ${ctx.eventType}에 ${ctx.person}을 초대하고 싶었습니다.\n부담을 느끼지 않도록 자유롭게 참여하셔도 되고, 중간에 조용히 이동하셔도 괜찮습니다.\n마음이 허락되면 함께해 주세요.\n제가 편하게 동행하겠습니다.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 요즘 일상 속에서 마음이 무거울 때가 많지 않으신가요.\n저 역시 그런 시간을 지나며 혼자 버티기보다 함께 예배드리고 이야기 나누는 시간이 큰 위로가 되었습니다.\n이번 ${ctx.eventType}${josa(ctx.eventType, "으로/로")} 초대드리는 이유도 그 위로를 나누고 싶어서입니다.\n강요나 부담 없이 편하게 오셔서 분위기만 느끼고 가셔도 충분합니다.\n필요하시면 이동부터 자리 안내까지 제가 함께하겠습니다.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 늘 드리고 싶던 초대를 전합니다.\n이번 ${ctx.eventType}는 말씀과 찬양, 그리고 짧은 교제를 통해 마음을 다시 세우는 시간으로 준비되어 있습니다.\n처음 참여하시는 분이 불편하지 않도록 진행이 단순하고, 강요 없이 자유롭게 머물 수 있습니다.\n${ctx.person}이 오시면 제가 곁에서 돕고, 끝난 뒤에도 필요한 만큼 함께하겠습니다.\n괜찮으시다면 이번에 함께해 주세요.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 오늘은 감사와 함께 작은 부탁을 드리고 싶습니다.\n제가 소중히 여기는 ${ctx.eventType} 자리에 ${ctx.person}을 초대하고 싶습니다.\n요란하거나 부담스러운 분위기가 아니라, 차분하게 마음을 돌아보고 힘을 얻는 시간이 중심입니다.\n참석하시면 제가 옆에서 하나씩 안내해 드릴게요.\n부담은 내려놓고 편하게 생각해 주세요.\n가능하시면 함께해 주시면 기쁘겠습니다.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-  (ctx) => `${ctx.addressee}, 바쁘신 중에 메시지 읽어주셔서 감사합니다.\n저는 요즘 공동체 안에서 예배드리는 시간이 삶의 균형을 잡는 데 큰 도움이 되고 있습니다.\n이번 ${ctx.eventType}${josa(ctx.eventType, "은/는")} 그런 의미를 나누기 좋은 자리라 ${ctx.person}을 꼭 떠올리게 되었습니다.\n처음이어서 어색할 수 있지만, 제가 곁에 있으니 걱정하지 않으셔도 됩니다.\n편히 오셔서 필요한 만큼만 머무르셔도 괜찮습니다.\n함께할 수 있으면 좋겠습니다.${ctx.meta ? `\n${ctx.meta}` : ""}`,
-];
-
-const TEMPLATES_BY_LENGTH: Record<InvitationLength, InvitationTemplate[]> = {
-  short: SHORT_TEMPLATES,
-  medium: MEDIUM_TEMPLATES,
-  long: LONG_TEMPLATES,
+const TONES: Partial<Record<RelationshipProfile, ProfileTone>> = {
+  parent: {
+    opening: [
+      (ctx) => `${ctx.addressee}, 늘 감사한 마음으로 연락드려요.`,
+      (ctx) => `${ctx.addressee}, 이번에는 제가 소중히 여기는 시간을 함께 나누고 싶어 연락드렸어요.`,
+    ],
+    reason: [
+      (ctx) => `이번 ${ctx.eventType}는 마음을 차분히 정리하고 위로를 얻기 좋은 자리예요.`,
+      (ctx) => `이번 ${ctx.eventType}에서 삶을 돌아보고 마음에 힘을 얻는 시간을 함께하면 좋겠어요.`,
+    ],
+    reassure: [
+      () => "부담 없이 앉아서 듣기만 하셔도 괜찮아요.",
+      () => "처음부터 끝까지 제가 옆에서 안내해 드릴게요.",
+    ],
+    ask: [
+      () => "괜찮으시면 제가 모시고 함께 다녀오고 싶어요.",
+      () => "시간이 되시면 이번에 함께해 주시면 좋겠습니다.",
+    ],
+    closing: [
+      () => "편하실 때 알려주세요.",
+      () => "부담 없이 생각해 보시고 답 주시면 감사하겠습니다.",
+    ],
+  },
+  grandparent: {
+    opening: [
+      (ctx) => `${ctx.addressee}, 안부 드립니다.`,
+      (ctx) => `${ctx.addressee}, 평안하신지요.`,
+    ],
+    reason: [
+      (ctx) => `이번 ${ctx.eventType}에 조용히 함께하면 좋겠다는 마음으로 연락드렸습니다.`,
+      (ctx) => `이번 ${ctx.eventType}는 편안하게 참석하실 수 있는 자리라 조심스럽게 모시고 싶습니다.`,
+    ],
+    reassure: [
+      () => "오셔서 쉬어가시듯 편하게 계시면 됩니다.",
+      () => "불편하시지 않도록 제가 곁에서 잘 도와드리겠습니다.",
+    ],
+    ask: [
+      () => "시간 괜찮으시면 함께해 주실 수 있을까요.",
+      () => "이번 기회에 함께 자리해 주시면 감사하겠습니다.",
+    ],
+    closing: [
+      () => "무리하지 마시고 괜찮으실 때 말씀 주세요.",
+      () => "편하신 답변 기다리겠습니다.",
+    ],
+  },
+  sibling: {
+    opening: [
+      (ctx) => `${ctx.addressee}, 요즘 어때?`,
+      (ctx) => `${ctx.addressee}, 문득 생각나서 연락했어.`,
+    ],
+    reason: [
+      (ctx) => `이번 ${ctx.eventType}에 같이 가면 서로 좋은 시간 보낼 수 있을 것 같아.`,
+      (ctx) => `이번 ${ctx.eventType}는 편하게 참여할 수 있는 자리라 같이 가자고 제안해 보고 싶었어.`,
+    ],
+    reassure: [
+      () => "어색하면 중간에 잠깐 나와도 괜찮아.",
+      () => "부담 없이 와서 분위기만 보고 가도 돼.",
+    ],
+    ask: [
+      () => "괜찮으면 이번에 같이 가자.",
+      () => "시간 되면 같이 가줄래?",
+    ],
+    closing: [
+      () => "편하게 답 줘.",
+      () => "부담 갖지 말고 생각해 보고 알려줘.",
+    ],
+  },
+  friend: {
+    opening: [
+      (ctx) => `${ctx.addressee}, 잘 지내지?`,
+      (ctx) => `${ctx.addressee}, 오랜만에 안부 남겨.`,
+    ],
+    reason: [
+      (ctx) => `이번 ${ctx.eventType}가 있는데, 생각보다 편하고 따뜻한 분위기라 너랑 같이 가고 싶었어.`,
+      (ctx) => `이번 ${ctx.eventType}는 처음 가는 사람도 부담 없는 자리라 한번 같이 가보면 좋겠어.`,
+    ],
+    reassure: [
+      () => "어색하면 내가 옆에서 같이 있어 줄게.",
+      () => "뭔가를 강요하는 자리가 아니라 편히 쉬어가는 시간이야.",
+    ],
+    ask: [
+      () => "시간 되면 이번에 같이 가볼래?",
+      () => "괜찮으면 한번만 같이 가주면 좋겠어.",
+    ],
+    closing: [
+      () => "부담 없이 생각해 보고 답 줘.",
+      () => "편하게 결정해 줘도 돼.",
+    ],
+  },
+  coworker: {
+    opening: [
+      (ctx) => `${ctx.addressee}, 안녕하세요.`,
+      (ctx) => `${ctx.addressee}, 업무로 바쁘실 텐데 갑작스러운 연락 드립니다.`,
+    ],
+    reason: [
+      (ctx) => `이번 ${ctx.eventType}에 부담 없이 참여할 수 있는 시간이 있어 조심스럽게 초대드립니다.`,
+      (ctx) => `이번 ${ctx.eventType}는 조용히 쉬어가며 생각을 정리하기 좋은 자리라 안내드리고 싶었습니다.`,
+    ],
+    reassure: [
+      () => "처음 오셔도 불편하지 않도록 제가 함께하겠습니다.",
+      () => "잠시만 머무르셔도 괜찮고, 편하신 범위에서 참여하시면 됩니다.",
+    ],
+    ask: [
+      () => "시간이 허락되시면 함께해 주실 수 있을까요.",
+      () => "괜찮으시면 이번에 함께 자리해 주시면 감사하겠습니다.",
+    ],
+    closing: [
+      () => "부담 없이 검토해 보시고 편하실 때 알려주세요.",
+      () => "답변은 편하실 때 주셔도 됩니다.",
+    ],
+  },
+  acquaintance: {
+    opening: [
+      (ctx) => `${ctx.addressee}, 안녕하세요.`,
+      (ctx) => `${ctx.addressee}, 평안하신지요.`,
+    ],
+    reason: [
+      (ctx) => `이번 ${ctx.eventType}가 있어 조심스럽게 초대드리고 싶었습니다.`,
+      (ctx) => `이번 ${ctx.eventType}는 부담 없이 참여할 수 있는 모임이라 알려드립니다.`,
+    ],
+    reassure: [
+      () => "강요 없이 편하게 참여하실 수 있는 자리입니다.",
+      () => "분위기만 보고 가셔도 괜찮습니다.",
+    ],
+    ask: [
+      () => "가능하시면 함께해 보시겠어요?",
+      () => "시간이 맞으시면 한번 들러 주시면 좋겠습니다.",
+    ],
+    closing: [
+      () => "편하게 생각해 보시고 알려주세요.",
+      () => "답변은 부담 없이 주시면 됩니다.",
+    ],
+  },
+  "former-church-colleague": {
+    opening: [
+      (ctx) => `${ctx.addressee}, 오랜만에 안부드립니다.`,
+      (ctx) => `${ctx.addressee}, 예전에 함께 예배드리던 시간이 떠올라 연락드렸습니다.`,
+    ],
+    reason: [
+      (ctx) => `이번 ${ctx.eventType}에 함께하면 좋겠다는 마음이 들어 조심스럽게 초대드립니다.`,
+      (ctx) => `이번 ${ctx.eventType}는 다시 가볍게 발걸음을 옮기기 좋은 자리라 생각되어 안내드립니다.`,
+    ],
+    reassure: [
+      () => "편하게 오셔서 분위기만 느끼고 가셔도 충분합니다.",
+      () => "부담스럽지 않게 제가 곁에서 조용히 도와드리겠습니다.",
+    ],
+    ask: [
+      () => "괜찮으시면 이번에 함께하실 수 있을까요.",
+      () => "시간이 되시면 함께 자리해 주시면 반가울 것 같습니다.",
+    ],
+    closing: [
+      () => "편하실 때 답변 주시면 감사하겠습니다.",
+      () => "부담 없이 생각해 보시고 알려주세요.",
+    ],
+  },
+  neighbor: {
+    opening: [
+      (ctx) => `${ctx.addressee}, 안녕하세요.`,
+      (ctx) => `${ctx.addressee}, 늘 인사만 드리다가 조심스럽게 연락드립니다.`,
+    ],
+    reason: [
+      (ctx) => `이번 ${ctx.eventType}에 이웃 분들과 함께하기 좋은 시간이 있어 안내드립니다.`,
+      (ctx) => `이번 ${ctx.eventType}는 편하게 참여할 수 있는 자리라 한번 권해 드리고 싶었습니다.`,
+    ],
+    reassure: [
+      () => "처음 참석하셔도 어색하지 않도록 안내해 드리겠습니다.",
+      () => "잠시 들르셨다가 가셔도 괜찮습니다.",
+    ],
+    ask: [
+      () => "시간 되시면 함께해 보실래요?",
+      () => "괜찮으시면 이번에 같이 가면 좋겠습니다.",
+    ],
+    closing: [
+      () => "편하게 답 주세요.",
+      () => "부담 없이 검토해 보시고 알려주세요.",
+    ],
+  },
+  family: {
+    opening: [
+      (ctx) => `${ctx.addressee}, 진심으로 초대하고 싶은 마음이 있어 연락드려요.`,
+      (ctx) => `${ctx.addressee}, 가족이라 더 조심스럽게 제안해 보고 싶었어요.`,
+    ],
+    reason: [
+      (ctx) => `이번 ${ctx.eventType}에서 함께 시간을 보내면 큰 힘이 될 것 같아요.`,
+      (ctx) => `이번 ${ctx.eventType}는 편하게 참여할 수 있는 자리라 같이 가면 좋겠어요.`,
+    ],
+    reassure: [
+      () => "억지로가 아니라 편안한 마음으로 오시면 됩니다.",
+      () => "제가 옆에서 같이 있으니 부담 내려놓으셔도 돼요.",
+    ],
+    ask: [
+      () => "괜찮으면 이번에 같이 가요.",
+      () => "시간 되면 함께해 주세요.",
+    ],
+    closing: [
+      () => "편하실 때 답 주세요.",
+      () => "천천히 생각해 보고 알려줘도 괜찮아요.",
+    ],
+  },
+  self: {
+    opening: [
+      () => "이번 모임은 제 마음을 다시 세우고 싶은 마음으로 준비하고 있습니다.",
+      () => "저 자신을 위해서도 다시 중심을 잡고 싶어 이번 자리를 결심했습니다.",
+    ],
+    reason: [
+      (ctx) => `이번 ${ctx.eventType}를 통해 마음을 정돈하고 신앙의 기본을 다시 다지고 싶습니다.`,
+      (ctx) => `이번 ${ctx.eventType}에서 삶을 돌아보며 필요한 결단을 하고 싶습니다.`,
+    ],
+    reassure: [
+      () => "무리하지 않고, 가능한 범위에서 꾸준히 참여해 보겠습니다.",
+      () => "완벽하게 하려 하기보다 한 걸음씩 이어가겠습니다.",
+    ],
+    ask: [
+      () => "이번에는 꼭 참여해 보겠습니다.",
+      () => "이번 기회를 다시 시작의 계기로 삼겠습니다.",
+    ],
+    closing: [
+      () => "작은 순종부터 이어가겠습니다.",
+      () => "오늘 결심을 실제 행동으로 옮기겠습니다.",
+    ],
+  },
+  general: {
+    opening: [
+      (ctx) => `${ctx.addressee}, 안녕하세요.`,
+      (ctx) => `${ctx.addressee}, 조심스럽게 연락드립니다.`,
+    ],
+    reason: [
+      (ctx) => `이번 ${ctx.eventType}에 함께하시면 좋겠다는 마음으로 연락드렸습니다.`,
+      (ctx) => `이번 ${ctx.eventType}는 편하게 참여할 수 있는 자리라 안내드립니다.`,
+    ],
+    reassure: [
+      () => "부담 없이 참여하실 수 있습니다.",
+      () => "편하게 와서 쉬어가셔도 괜찮습니다.",
+    ],
+    ask: [
+      () => "시간 되시면 함께해 보실래요?",
+      () => "괜찮으시면 이번에 함께해 주세요.",
+    ],
+    closing: [
+      () => "편하게 생각해 보시고 알려주세요.",
+      () => "부담 없이 답해 주시면 됩니다.",
+    ],
+  },
 };
 
 function normalizeLength(raw: unknown): InvitationLength {
@@ -80,33 +318,106 @@ function cleanup(text: string): string {
     .trim();
 }
 
+function pick<T>(items: T[], seed: number): T {
+  return items[Math.abs(seed) % items.length];
+}
+
+function resolveRelationship(raw?: string): PersonRelationship {
+  const value = sanitizeName(raw) as PersonRelationship;
+  switch (value) {
+    case "family":
+    case "friend":
+    case "colleague":
+    case "acquaintance":
+    case "self":
+    case "neighbor":
+    case "parent":
+    case "grandparent":
+    case "sibling":
+    case "coworker":
+    case "former-church-colleague":
+      return value;
+    default:
+      return "acquaintance";
+  }
+}
+
+function softenLine(
+  line: string,
+  profile: RelationshipProfile,
+  seed: number,
+  length: InvitationLength
+): string {
+  const pool = PROFILE_EMOJIS[profile] || PROFILE_EMOJIS.general || [];
+  if (!pool.length) return line;
+
+  // 너무 과한 느낌을 막기 위해 짧은 메시지는 일부 케이스에서만 이모지를 붙인다.
+  if (length === "short" && seed % 2 === 1) return line;
+  return `${line} ${pick(pool, seed)}`;
+}
+
 function buildContext(body: {
   personName?: string;
   relationship?: string;
   eventType?: string;
   date?: string;
   location?: string;
+  additionalContext?: string;
 }): TemplateContext {
-  const relationship = RELATIONSHIP_LABELS[body.relationship || ""] || "지인";
-  const eventType = sanitizeName(body.eventType) || "예배";
+  const relationship = resolveRelationship(body.relationship);
   const name = sanitizeName(body.personName);
-  const rawRelationship =
-    body.relationship === "family" ||
-    body.relationship === "friend" ||
-    body.relationship === "colleague" ||
-    body.relationship === "acquaintance"
-      ? body.relationship
-      : "acquaintance";
+  const profile = detectRelationshipProfile({
+    relationship,
+    personName: name,
+    additionalContext: body.additionalContext,
+  });
 
   return {
-    addressee: toAddressee(name, rawRelationship),
-    person: toReference(name, rawRelationship),
-    relationship,
-    eventType,
+    addressee: toAddressee(name, relationship),
+    person: toReference(name, relationship),
+    profile,
+    relationshipLabel:
+      RELATIONSHIP_LABELS[relationship] || relationshipProfileLabel(profile),
+    eventType: sanitizeName(body.eventType) || "예배",
     date: sanitizeName(body.date),
     location: sanitizeName(body.location),
+    additionalContext: sanitizeName(body.additionalContext),
     meta: eventMeta(body.date, body.location),
   };
+}
+
+function composeInvitation(
+  ctx: TemplateContext,
+  length: InvitationLength,
+  variationIndex: number
+): string {
+  const tone = TONES[ctx.profile] || TONES.general!;
+  const seed = Math.abs(Number(variationIndex) || 0);
+
+  const lines: string[] = [
+    softenLine(pick(tone.opening, seed)(ctx), ctx.profile, seed + 11, length),
+    pick(tone.reason, seed + 1)(ctx),
+  ];
+
+  if (length !== "short") {
+    lines.push(pick(tone.reassure, seed + 2)(ctx));
+    if (ctx.additionalContext && length === "long") {
+      lines.push(`${ctx.person}의 요즘 상황(${ctx.additionalContext})을 생각하며 더 조심스럽게 연락드렸습니다.`);
+    }
+  }
+
+  lines.push(softenLine(pick(tone.ask, seed + 3)(ctx), ctx.profile, seed + 13, length));
+
+  if (length !== "short") {
+    const closing = pick(tone.closing, seed + 4)(ctx);
+    lines.push(length === "long" ? softenLine(closing, ctx.profile, seed + 17, length) : closing);
+  }
+
+  if (ctx.meta) {
+    lines.push(`일시/장소: ${ctx.meta}`);
+  }
+
+  return cleanup(lines.join("\n\n"));
 }
 
 export async function POST(request: NextRequest) {
@@ -117,6 +428,7 @@ export async function POST(request: NextRequest) {
     eventType,
     date,
     location = "",
+    additionalContext = "",
     variationIndex = 0,
     length,
   } = body;
@@ -128,51 +440,9 @@ export async function POST(request: NextRequest) {
     eventType,
     date,
     location,
+    additionalContext,
   });
 
-  const openai = getOpenAIClient();
-  if (openai) {
-    try {
-      const maxTokensByLength: Record<InvitationLength, number> = {
-        short: 220,
-        medium: 450,
-        long: 850,
-      };
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: INVITATION_PROMPT },
-          {
-            role: "user",
-            content: [
-              "다음 정보로 1:1 초대 메시지를 작성해주세요.",
-              `- 이름/호칭: ${sanitizeName(personName) || "미입력"}`,
-              `- 관계: ${ctx.relationship}`,
-              `- 모임명: ${ctx.eventType}`,
-              `- 일시: ${ctx.date || "미입력(언급 생략 가능)"}`,
-              `- 장소: ${ctx.location || "미입력(언급 생략 가능)"}`,
-              `- 길이: ${normalizedLength}`,
-              `- 변형 인덱스: ${variationIndex}`,
-              "요청: 어색한 조사/호칭 없이 자연스럽게 작성하고, 같은 문장 반복을 피해주세요.",
-            ].join("\n"),
-          },
-        ],
-        temperature: 0.9,
-        max_tokens: maxTokensByLength[normalizedLength],
-      });
-
-      const message = cleanup(completion.choices[0]?.message?.content || "");
-      if (message) {
-        return NextResponse.json({ message });
-      }
-    } catch {
-      // Fall through to template fallback
-    }
-  }
-
-  const templates = TEMPLATES_BY_LENGTH[normalizedLength];
-  const idx = Math.abs(Number(variationIndex) || 0) % templates.length;
-  const message = cleanup(templates[idx](ctx));
-
+  const message = composeInvitation(ctx, normalizedLength, variationIndex);
   return NextResponse.json({ message });
 }

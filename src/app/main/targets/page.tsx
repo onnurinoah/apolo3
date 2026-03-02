@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useTargets, getPrayStreak, getDaysSinceLastPrayer } from "@/hooks/useTargets";
+import Onboarding, { useOnboarding } from "@/components/Onboarding";
 import {
   EvangelismTarget,
   TargetRelationship,
@@ -262,6 +263,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 // ─── 메인 페이지 ────────────────────────────────────────────
 export default function TargetsPage() {
   const { targets, loaded, addTarget } = useTargets();
+  const { show: showOnboarding, done: onboardingDone } = useOnboarding();
   const [showForm, setShowForm] = useState(false);
 
   const handleAdd = useCallback(
@@ -271,6 +273,7 @@ export default function TargetsPage() {
     [addTarget]
   );
 
+  if (showOnboarding) return <Onboarding onDone={onboardingDone} />;
   if (!loaded) return null;
 
   return (

@@ -1,4 +1,14 @@
-export type RelationshipType = "family" | "friend" | "colleague" | "acquaintance";
+export type RelationshipType =
+  | "family"
+  | "parent"
+  | "grandparent"
+  | "sibling"
+  | "friend"
+  | "colleague"
+  | "coworker"
+  | "acquaintance"
+  | "neighbor"
+  | "former-church-colleague";
 export type InvitationLength = "short" | "medium" | "long";
 
 export interface InvitationInput {
@@ -7,6 +17,7 @@ export interface InvitationInput {
   eventType: string; // 모임 종류
   date?: string; // 날짜 (선택)
   location?: string; // 장소
+  additionalContext?: string; // 상황 메모 (선택)
   length?: InvitationLength; // 메시지 길이
 }
 

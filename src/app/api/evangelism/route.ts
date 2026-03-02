@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOpenAIClient } from "@/lib/openai";
-import { EVANGELISM_PROMPT } from "@/lib/prompts";
 import { josa, postfix } from "@/lib/korean";
+
+type StrategyTrack =
+  | "healing"
+  | "crisis-care"
+  | "family-discipleship"
+  | "workplace-witness"
+  | "intellectual"
+  | "gospel-bridge"
+  | "long-term"
+  | "oikos";
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   family: "가족",
@@ -16,101 +24,360 @@ const INTEREST_LABELS: Record<string, string> = {
   neutral: "중립적",
   negative: "부정적·거부감",
   curious: "호기심 있음",
-  hurt: "교회에 상처받은 경험 있음",
+  hurt: "교회 상처 경험",
 };
 
-// 이름 헬퍼: 이름이 없으면 "대상자" 사용
-const nm = (name: string | undefined) => name || "대상자";
-const nmP = (name: string | undefined) => name ? postfix(name, "을/를") : "대상자를";
-const nmI = (name: string | undefined) => name ? name + josa(name, "이/") : "대상자가";
-const nmN = (name: string | undefined) => name ? name + josa(name, "은/는") : "대상자는";
-
-// 6개 심층 전도전략 템플릿 (오이코스, EE, 위기, 지식형, 교회상처, 장기관계)
-const FALLBACK_TEMPLATES = [
-
-  // 1. 오이코스 전도 (Oikos) - 자연스러운 관계망 접근
-  (name: string | undefined, rel: string, situation: string, _interest: string) =>
-    `📋 전도 전략 요약\n[오이코스 관계 전도] ${rel}${josa(rel, "으로/로")}서 이미 신뢰 관계가 형성된 ${nm(name)}에게 가장 효과적인 전도는 강요 없는 삶의 동행입니다. 현재 ${situation} 상황이 마음의 문을 여는 자연스러운 기회가 될 수 있습니다.\n\n🎯 액션포인트\n\n1️⃣ 이번 주 밥 한 끼 또는 커피 약속 잡기\n전도보다 관계가 먼저입니다. 지금 당장 만남을 계획하세요. ${situation} 상황을 겪고 있다면 "최근에 어떻게 지냈어?" 한 마디가 마음을 엽니다.\n\n2️⃣ 필요를 파악하고 실질적으로 돕기\n지금 ${nm(name)}에게 가장 필요한 것이 무엇인지 물어보고 행동으로 보여주세요.\n"사랑은 말과 혀로만 하지 말고 행함과 진실함으로 하자" (요한일서 3:18)\n\n3️⃣ 자신의 변화를 자연스럽게 나누기\n"요즘 내가 좀 달라진 것 같다는 말 들었어?" 식으로 먼저 삶의 변화를 꺼내 관심을 유도하세요.\n\n4️⃣ 낮은 문턱의 자리부터 초대\n대예배보다 소그룹 모임, 문화 행사, 식사 교제처럼 부담이 작은 자리부터 초대하세요.\n\n💡 대화 시작 예시\n"요즘 어때? 나는 요즘 생각보다 마음이 많이 안정됐는데, 사실 어디서 오는지 이야기해줄 수 있어?"\n\n🙏 기도 포인트\n- ${nmI(name)} 마음 밭을 성령님이 부드럽게 하시도록 (에스겔 36:26)\n- ${nmP(name)} 향한 진심 어린 관심이 내 안에서 자라도록\n- 자연스러운 복음 나눔의 문이 열리도록`,
-
-  // 2. EE식 접근 (Evangelism Explosion) - 긍정적·호기심 있는 상대
-  (name: string | undefined, rel: string, situation: string, _interest: string) =>
-    `📋 전도 전략 요약\n[복음 직접 전달 접근] ${rel} ${nmN(name)} 신앙에 관심을 보이거나 마음이 열려있는 상태입니다. 자연스러운 대화 속에서 복음의 핵심을 직접 나눌 적기입니다.\n\n🎯 액션포인트\n\n1️⃣ 영적 관심도를 확인하는 질문으로 시작\n"혹시 하나님이나 종교에 대해 생각해본 적 있어?"\n"만약 오늘 죽는다면, 천국에 갈 수 있다고 생각해? 왜 그렇게 생각해?"\n이 두 질문은 자연스럽게 복음으로 연결됩니다.\n\n2️⃣ 브릿지 복음 나누기\n하나님 ←── 죄로 인한 단절 ──→ 사람\n         ↓↓↓ 예수님의 십자가 ↓↓↓\n"죄의 삯은 사망이요 하나님의 은사는 그리스도 예수 우리 주 안에 있는 영생이니라" (로마서 6:23)\n\n3️⃣ ${situation} 상황과 복음 연결\n현재 ${nmI(name)} 겪는 상황에 복음이 실질적 답이 됨을 보여주세요. "나도 비슷한 때 이 말씀이 정말 위로가 됐어" 하고 자신의 이야기를 먼저 나누세요.\n\n4️⃣ 반응을 들은 후 소그룹 또는 1:1 성경 공부 제안\n관심을 보이면 큰 예배보다 소그룹이나 1:1 탐구 모임을 먼저 권해보세요.\n\n💡 대화 시작 예시\n"나 요즘 교회 나가면서 정말 많이 변했거든. 30분만 시간 내줄 수 있어? 내 이야기 들어봐."\n\n🙏 기도 포인트\n- 성령님이 ${nmI(name)} 마음에 죄와 의와 심판을 깨닫게 하시도록 (요한복음 16:8)\n- 내가 복음을 담대하고 자연스럽게 전할 수 있도록 (골로새서 4:3)\n- 이 대화 이후에도 복음의 씨앗이 ${nm(name)} 안에서 자라도록`,
-
-  // 3. 위기 전도 - 어려운 상황에 처한 상대
-  (name: string | undefined, rel: string, situation: string, _interest: string) =>
-    `📋 전도 전략 요약\n[위기 동행 전도] ${nmN(name)} 현재 ${situation}${josa(situation, "으로/로")} 힘든 시기를 보내고 있습니다. 위기는 하나님이 사람 마음을 여시는 순간이 될 수 있습니다. 지금은 말보다 존재가 먼저입니다.\n\n🎯 액션포인트\n\n1️⃣ 판단 없이 곁에 있기\n지금 당장 복음을 전하려 하지 마세요. 먼저 들어주고, 인정해주고, 함께 있어주세요.\n"슬퍼하는 자들과 함께 슬퍼하라" (로마서 12:15)\n→ 오늘 당장 연락하세요: "요즘 어때? 생각나서 연락했어."\n\n2️⃣ 구체적인 실질적 도움 제공\n밥 챙겨주기, 심부름, 같이 병원 동행 등 직접적 도움이 가장 강한 복음 증거입니다. "${situation} 상황에서 내가 뭘 도와줄 수 있을까?" 하고 직접 물어보세요.\n\n3️⃣ 소망을 조심스럽게 나누기\n관계가 안정되면 자연스럽게 제안하세요:\n"나는 이런 힘든 시기에 기도가 정말 도움이 됐어. 같이 기도해줄까?"\n\n4️⃣ 교회 공동체의 따뜻함 연결\n개인의 돌봄을 넘어, 공동체의 지지가 살아있는 복음의 증거가 됩니다.\n\n💡 대화 시작 예시\n"많이 힘들지? 아무 말 안 해도 돼. 그냥 같이 있어줄게."\n(복음 이야기는 나중에 — 지금 존재 자체가 전도입니다)\n\n🙏 기도 포인트\n- ${nm(name)}의 고통 가운데 하나님의 위로가 실제로 임하도록 (고린도후서 1:4)\n- 이 위기가 ${nmI(name)} 하나님을 찾는 전환점이 되도록\n- 내가 온전한 사랑과 인내로 ${nm(name)} 곁에 있을 수 있도록`,
-
-  // 4. 지식형·이성적 접근 - 지적 회의주의자
-  (name: string | undefined, rel: string, _situation: string, _interest: string) =>
-    `📋 전도 전략 요약\n[지성 기반 전도] ${rel} ${nmN(name)} 이성적이고 논리적인 성향을 가진 것으로 보입니다. 감성적 접근보다 증거 기반의 지적 탐구 방식이 효과적입니다.\n\n🎯 액션포인트\n\n1️⃣ 질문에 질문으로 답하기\n"좋은 질문이야, 나도 그게 궁금했었어" 하고 함께 탐구하는 자세를 취하세요. 기독교는 질문을 환영합니다.\n→ 방어적 답변 대신 "같이 생각해보자"는 태도가 신뢰를 만듭니다.\n\n2️⃣ 변증학적 논점 활용\n• 우주론적 논증: "왜 아무것도 없지 않고 무언가가 존재하는가?"\n• 도덕 논증: "보편적 선악의 기준은 어디서 오는가?"\n• 역사적 증거: 예수 부활의 역사적 사실성 (공허한 무덤, 목격자들)\n→ 📚 C.S. 루이스 <순전한 기독교>를 자연스럽게 선물해보세요.\n\n3️⃣ 자신의 지적 여정 나누기\n"나도 처음엔 안 믿었는데, 공부할수록 오히려 확신이 생겼어" 하고 자신의 이야기를 먼저 나누세요.\n\n4️⃣ 알파코스·변증학 강좌 초대\n"한번 같이 토론해볼 수 있는 자리가 있는데, 관심 있어?" 하고 지성적 탐구 공간으로 초대하세요.\n\n💡 대화 시작 예시\n"나 요즘 기독교 공부하고 있는데 사실 꽤 논리적이더라고. 관심 있어? 같이 이야기해봐도 재밌을 것 같아서."\n\n🙏 기도 포인트\n- ${nm(name)}의 지성이 진리를 가리는 방해물이 아닌 통로가 되도록\n- 내가 지혜롭고 온유하게 대답할 수 있도록 (베드로전서 3:15)\n- 성령님이 ${nmI(name)} 마음 안에서 증거의 역사를 행하시도록`,
-
-  // 5. 교회 상처 회복 전도 - 교회에 상처받은 상대
-  (name: string | undefined, _rel: string, _situation: string, _interest: string) =>
-    `📋 전도 전략 요약\n[치유 중심 전도] ${nmN(name)} 교회나 기독교인으로부터 상처받은 경험이 있습니다. 먼저 그 상처를 충분히 인정하고 들어주는 것이 가장 중요한 첫 단계입니다.\n\n🎯 액션포인트\n\n1️⃣ 상처를 먼저 인정하기\n"맞아, 그건 잘못된 거야. 그런 일이 있었다면 상처받는 게 당연해."\n변호하거나 설명하려 하지 마세요. 먼저 공감이 먼저입니다.\n\n2️⃣ 예수님과 교회·종교를 분리하기\n"예수님은 그런 분이 아니야"라고 강요하지 말고, 당신의 삶으로 보여주세요. 말보다 삶이 더 설득력 있습니다.\n"상한 갈대를 꺾지 아니하며 꺼져가는 심지를 끄지 아니하고" (이사야 42:3)\n\n3️⃣ 압박 없는 관계 유지\n절대 전도 목적이 있다는 인상을 주지 마세요. 그냥 진심으로 ${nmP(name)} 친구로 대하세요. 하나님의 때가 있습니다.\n\n4️⃣ 건강한 공동체를 보여주기\n시간이 지나면, 상처를 준 곳과 다른 따뜻한 교회 사람들을 자연스럽게 소개하세요. 이것이 가장 강력한 설득입니다.\n\n💡 대화 시작 예시\n"나 교회 다니는 거 알지? 근데 네가 예전에 교회에서 힘들었다고 했잖아. 솔직히 그런 일이 있었다면 상처받는 게 당연한 거야. 그게 어땠는지 이야기해줄 수 있어?"\n\n🙏 기도 포인트\n- ${nm(name)}의 상처가 하나님 앞에서 치유되도록 (시편 147:3)\n- 내가 예수님의 진짜 모습을 삶으로 보여줄 수 있도록\n- ${nmI(name)} 교회가 아닌 예수님을 만나는 날이 오도록`,
-
-  // 6. 장기 관계 전도 - 부정적·저항적 상대
-  (name: string | undefined, _rel: string, _situation: string, _interest: string) =>
-    `📋 전도 전략 요약\n[장기 인내 전도] ${nmN(name)} 신앙에 거부감이 있거나 저항적인 태도를 보입니다. 서두르지 않는 장기적 접근이 필요합니다. 씨앗을 뿌리고 하나님이 자라게 하십니다.\n\n🎯 액션포인트\n\n1️⃣ 지금 당장의 전도 목표를 내려놓기\n역설적이지만, 당장의 전도를 목표에서 내려놓으세요. ${nmP(name)} 진심으로 사랑하고 친구로 대하는 것 자체가 복음입니다.\n"나는 심었고 아볼로는 물을 주었으되 오직 하나님께서 자라나게 하셨나니" (고린도전서 3:6)\n\n2️⃣ 월 1-2회 정기적인 만남 유지\n꾸준한 관계가 신뢰를 만들고, 신뢰가 복음의 토양입니다. 지금 당장 이번 달 약속을 잡아보세요.\n\n3️⃣ 삶으로 증거하기\n기쁠 때 감사하고, 힘들 때 기도한다고 말하고, 용서하고 섬기는 삶을 보여주세요.\n${nmI(name)} "저 사람은 왜 저럴까?" 궁금해할 때가 기회입니다.\n\n4️⃣ 일상 속에 자연스러운 신앙 언급\n강요 없이 "어제 교회에서 좋은 이야기 들었어"처럼 일상에 신앙을 자연스럽게 녹여내세요.\n\n5️⃣ 꾸준한 중보기도\n보이지 않지만 가장 강력한 전도입니다. ${nm(name)}를 위해 매일 기도하세요.\n\n💡 지금 당장 할 일\n전도 대화가 아닌 안부 문자 한 통을 보내보세요:\n"요즘 어때? 생각나서 연락해봤어 😊"\n\n🙏 기도 포인트\n- 내가 조급해하지 않고 하나님의 타이밍을 기다릴 수 있도록\n- ${nm(name)}의 마음이 서서히 부드러워지도록 (에스겔 36:26)\n- ${nm(name)}의 삶 가운데 하나님이 직접 역사하시도록`,
+const CRISIS_KEYWORDS = [
+  "건강",
+  "병",
+  "암",
+  "치료",
+  "수술",
+  "실직",
+  "퇴사",
+  "이직",
+  "우울",
+  "불안",
+  "공황",
+  "상실",
+  "이별",
+  "경제",
+  "빚",
+  "스트레스",
+  "고립",
+  "외로움",
+  "가정 문제",
 ];
+
+const INTELLECTUAL_KEYWORDS = [
+  "과학",
+  "진화",
+  "증거",
+  "논리",
+  "철학",
+  "역사",
+  "증명",
+  "합리",
+  "의문",
+  "질문",
+];
+
+const nm = (name?: string) => name || "대상자";
+const nObj = (name?: string) => (name ? postfix(name, "을/를") : "대상자를");
+const nSub = (name?: string) => (name ? `${name}${josa(name, "이/")}` : "대상자가");
+
+function normalize(text?: string): string {
+  return (text || "").toLowerCase();
+}
+
+function includesAny(source: string, keywords: string[]): boolean {
+  return keywords.some((kw) => source.includes(kw));
+}
+
+function classifyTrack(input: {
+  relationship?: string;
+  interest?: string;
+  situation?: string;
+  additionalContext?: string;
+}): StrategyTrack {
+  const relationship = normalize(input.relationship);
+  const interest = normalize(input.interest);
+  const text = `${normalize(input.situation)} ${normalize(input.additionalContext)}`;
+
+  if (interest === "hurt") return "healing";
+  if (includesAny(text, CRISIS_KEYWORDS)) return "crisis-care";
+  if (relationship === "family") return "family-discipleship";
+  if (relationship === "colleague") return "workplace-witness";
+  if (interest === "curious" || includesAny(text, INTELLECTUAL_KEYWORDS)) return "intellectual";
+  if (interest === "positive") return "gospel-bridge";
+  if (interest === "negative") return "long-term";
+  return "oikos";
+}
+
+function buildStrategy(
+  track: StrategyTrack,
+  variationIndex: number,
+  input: {
+    targetName?: string;
+    relationshipLabel: string;
+    interestLabel: string;
+    situation: string;
+    additionalContext?: string;
+  }
+): string {
+  const name = input.targetName;
+  const baseHeader = [
+    "전략 요약",
+    `${input.relationshipLabel} 관계의 ${nm(name)} · 태도: ${input.interestLabel}`,
+    `현재 상황: ${input.situation}`,
+    input.additionalContext ? `추가 정보: ${input.additionalContext}` : "",
+  ].filter(Boolean);
+
+  const alt = Math.abs(Number(variationIndex) || 0) % 2;
+
+  const sections: Record<StrategyTrack, string[]> = {
+    healing: alt === 0
+      ? [
+          "접근 방식: 상처 치유 우선",
+          "핵심 실행",
+          `1. 먼저 ${nObj(name)} 설득하려 하지 말고 상처를 안전하게 말할 수 있는 분위기를 만듭니다.`,
+          "2. 교회/신자에 대한 부정 경험을 변명 없이 경청하고, 공감 문장을 짧게 반복합니다.",
+          "3. 신앙 대화는 짧게, 관계 돌봄은 길게 가져가며 최소 2주 단위로 안부를 유지합니다.",
+          "4. 예배 초대 전, 부담 낮은 식사/산책/소모임 동행부터 제안합니다.",
+          "대화 시작 예시",
+          `"예전 경험이 얼마나 힘들었는지 내가 다 알 수는 없지만, 네 이야기를 가볍게 넘기고 싶지 않아."`,
+          "기도 포인트",
+          `- ${nSub(name)} 과거 상처를 안전하게 다룰 수 있도록 (시편 147:3)`,
+          "- 내가 조급함 없이 사랑으로 동행하도록",
+        ]
+      : [
+          "접근 방식: 관계 회복형 동행",
+          "핵심 실행",
+          "1. 첫 3번의 만남 목표를 '신뢰 회복'으로 고정하고 전도 성과 지표를 내려놓습니다.",
+          "2. 상대가 경계하는 단어(교회, 헌신, 결단)를 초반에 반복하지 않습니다.",
+          "3. 실제 도움(일정 동행, 정보 연결, 식사)을 먼저 제공합니다.",
+          "4. 신앙 고백은 '내 경험' 형태로 짧게만 공유하고 답을 강요하지 않습니다.",
+          "대화 시작 예시",
+          `"지금 당장은 어떤 결정을 요구하고 싶지 않아. 다만 네가 안전하다고 느끼면 좋겠어."`,
+          "기도 포인트",
+          `- ${nObj(name)} 향한 두려움이 줄고 신뢰가 자라도록`,
+          "- 복음이 강요가 아니라 위로로 경험되도록",
+        ],
+
+    "crisis-care": alt === 0
+      ? [
+          "접근 방식: 위기 동행형 전도",
+          "핵심 실행",
+          "1. 첫 메시지는 조언보다 안부와 경청 요청으로 시작합니다.",
+          `2. ${input.situation}과 관련된 실제 도움 1가지를 오늘 제안합니다 (병원 동행/서류 정리/식사).`,
+          "3. 마음이 안정된 뒤 10분 내 짧은 기도 제안을 합니다.",
+          "4. 회복 속도에 맞춰 예배보다 소모임·짧은 방문을 먼저 제안합니다.",
+          "대화 시작 예시",
+          `"지금 해결책을 바로 말하기보다, 네가 버겁지 않게 오늘 하루를 같이 버텨주고 싶어."`,
+          "기도 포인트",
+          `- ${nSub(name)} 두려움보다 평안을 먼저 경험하도록 (빌립보서 4:7)`,
+          "- 도움의 사람과 타이밍이 정확히 연결되도록",
+        ]
+      : [
+          "접근 방식: 공감-도움-복음 3단계",
+          "핵심 실행",
+          "1. 공감: 감정 확인 문장 2개를 먼저 사용합니다.",
+          "2. 도움: 오늘 가능한 실질 지원 1개를 제공합니다.",
+          "3. 복음: '내가 붙잡은 소망'을 2-3문장으로만 공유합니다.",
+          "4. 다음 만남 일정을 구체 날짜로 잡아 관계 끊김을 막습니다.",
+          "대화 시작 예시",
+          `"해결이 바로 안 되더라도 네가 혼자는 아니라는 걸 오늘 분명히 느끼게 해주고 싶어."`,
+          "기도 포인트",
+          `- ${nObj(name)} 필요한 회복 자원이 공급되도록`,
+          "- 내 말보다 내 태도에서 복음이 보이도록",
+        ],
+
+    "family-discipleship": alt === 0
+      ? [
+          "접근 방식: 가족 관계형 전도",
+          "핵심 실행",
+          "1. 가족에게는 정보 전달보다 감정 안전지대를 먼저 만듭니다.",
+          "2. 하루 1회 짧은 안부/감사 표현으로 대화 분위기를 바꿉니다.",
+          "3. 신앙 대화는 논쟁형 질문 대신 삶의 간증형 문장으로 시작합니다.",
+          "4. 가족 행사와 연결된 자연스러운 초대(식사 후 예배 동행)를 제안합니다.",
+          "대화 시작 예시",
+          `"내가 신앙을 말할 때 설득하려던 태도가 있었던 것 같아. 이제는 먼저 잘 듣고 싶어."`,
+          "기도 포인트",
+          "- 가정 안의 말투와 표정이 부드러워지도록",
+          `- ${nSub(name)} 복음을 거부감보다 안정감으로 만나도록`,
+        ]
+      : [
+          "접근 방식: 일상 루틴형 동행",
+          "핵심 실행",
+          "1. 주 2회 가족과의 고정 대화 시간을 먼저 확보합니다.",
+          "2. 비판·교정보다 공감·격려 비율을 높여 신뢰를 회복합니다.",
+          "3. 기도 제안은 짧고 간단하게(30초) 진행합니다.",
+          "4. 예배 초대는 '한 번만' 제안 후 압박 없이 기다립니다.",
+          "대화 시작 예시",
+          `"네가 중요하게 생각하는 걸 먼저 듣고 싶어. 내가 충분히 듣지 못했던 것 같아."`,
+          "기도 포인트",
+          `- ${nObj(name)} 향한 내 태도가 복음적 사랑으로 정돈되도록`,
+          "- 가족 대화의 문이 계속 열리도록",
+        ],
+
+    "workplace-witness": alt === 0
+      ? [
+          "접근 방식: 직장 신뢰형 전도",
+          "핵심 실행",
+          "1. 업무 신뢰(시간 준수, 약속 이행)를 전도의 첫 증거로 삼습니다.",
+          "2. 점심/퇴근길 대화에서 삶의 고민을 먼저 듣고 공감합니다.",
+          "3. 신앙 대화는 '내가 왜 버티는지'를 2-3문장으로 공유합니다.",
+          "4. 공개적 종교 권유보다 개인적 초대 메시지로 부담을 낮춥니다.",
+          "대화 시작 예시",
+          `"요즘 일이 많아서 마음이 무거울 때가 있는데, 나는 기도로 중심을 다시 잡곤 해."`,
+          "기도 포인트",
+          `- ${nSub(name)} 직장 압박 속에서도 마음의 쉼을 경험하도록`,
+          "- 내 직장 태도에서 신뢰가 먼저 세워지도록",
+        ]
+      : [
+          "접근 방식: 실무 동행형 접근",
+          "핵심 실행",
+          "1. 상대의 현재 업무 부담을 구체적으로 파악합니다.",
+          "2. 도울 수 있는 업무/정보 지원 1건을 먼저 제공합니다.",
+          "3. 신앙 주제는 질문이 나올 때만 확장하고, 길게 밀어붙이지 않습니다.",
+          "4. '짧게 다녀오기 좋은 모임' 프레이밍으로 초대를 제안합니다.",
+          "대화 시작 예시",
+          `"요즘 프로젝트 때문에 많이 지치지? 내가 도움 될 수 있는 부분이 있으면 같이 해보자."`,
+          "기도 포인트",
+          `- ${nObj(name)} 실제 도움을 통해 마음 문이 열리도록`,
+          "- 직장 대화 속에서 지혜와 온유를 잃지 않도록",
+        ],
+
+    intellectual: alt === 0
+      ? [
+          "접근 방식: 질문 환영형 변증 전도",
+          "핵심 실행",
+          "1. 상대 질문을 반박 대상이 아니라 탐구 주제로 재구성합니다.",
+          "2. 매 대화마다 핵심 논점 1개만 다뤄 과부하를 막습니다.",
+          "3. 근거: 우주 기원/도덕 근거/예수 부활 역사성 순으로 단계화합니다.",
+          "4. 답을 단정하기보다 함께 읽을 자료를 제안합니다.",
+          "대화 시작 예시",
+          `"좋은 질문이야. 우리 이 주제는 오늘 하나만 정해서 같이 검토해 볼래?"`,
+          "기도 포인트",
+          `- ${nSub(name)} 지적 정직함 속에서 복음의 신뢰성을 보도록`,
+          "- 내가 방어적 태도 대신 학습형 태도를 유지하도록",
+        ]
+      : [
+          "접근 방식: DB 우선 변증 동행",
+          "핵심 실행",
+          "1. 질문을 기록해 변증 DB에서 유사 항목을 먼저 찾습니다.",
+          "2. 답변은 2-4문장 핵심 요약으로 시작합니다.",
+          "3. 추가 질문이 나오면 근거 1개만 더해 단계적으로 확장합니다.",
+          "4. 대화 후 요약 메시지로 핵심을 재정리합니다.",
+          "대화 시작 예시",
+          `"오늘 질문 핵심은 '근거가 있는가'로 보이네. 내가 짧게 요약해서 먼저 공유해볼게."`,
+          "기도 포인트",
+          `- ${nObj(name)} 묻는 태도가 진리 탐구로 이어지도록`,
+          "- 내가 정확성과 존중을 함께 지키도록",
+        ],
+
+    "gospel-bridge": alt === 0
+      ? [
+          "접근 방식: 복음 브릿지 직접 전개",
+          "핵심 실행",
+          "1. 관심이 높을 때는 복음 핵심(창조-타락-구속-응답)을 명확히 설명합니다.",
+          `2. ${input.situation}과 복음을 연결해 '지금 필요한 소망'으로 제시합니다.`,
+          "3. 결단 압박 대신 '한 단계 응답'을 제안합니다 (예: 함께 기도 1회).",
+          "4. 다음 만남에서 질문 1개를 반드시 이어갑니다.",
+          "대화 시작 예시",
+          `"네가 요즘 찾는 답이 뭔지 들으면서, 내가 왜 복음을 소망으로 믿게 됐는지 짧게 나눠보고 싶어."`,
+          "기도 포인트",
+          `- ${nSub(name)} 복음을 정보가 아닌 초대로 듣도록`,
+          "- 내가 결단을 강요하지 않고 진실하게 안내하도록",
+        ]
+      : [
+          "접근 방식: 간증 연결형 복음 제시",
+          "핵심 실행",
+          "1. 60초 개인 간증(전/중/후)으로 대화를 시작합니다.",
+          "2. 간증 뒤 상대의 반응을 먼저 듣고 핵심 질문 1개를 받습니다.",
+          "3. 질문에 답한 뒤 짧은 기도 제안을 합니다.",
+          "4. 예배/모임 초대는 '가볍게 와보기' 수준으로 제안합니다.",
+          "대화 시작 예시",
+          `"나도 비슷한 시기에 답답했는데, 복음을 이해하면서 중심이 바뀌었어. 너 생각도 듣고 싶어."`,
+          "기도 포인트",
+          `- ${nObj(name)} 향한 복음 설명이 분명하고 간결하도록`,
+          "- 성령께서 마음의 결단을 주도하시도록",
+        ],
+
+    "long-term": alt === 0
+      ? [
+          "접근 방식: 장기 인내형 관계 전도",
+          "핵심 실행",
+          "1. 당장 설득 목표를 내려놓고 4주 관계 루틴을 설계합니다.",
+          "2. 안부 메시지-만남-후속 안부의 반복 패턴을 고정합니다.",
+          "3. 신앙 언급 빈도는 낮추되 삶의 성실함 증거는 높입니다.",
+          "4. 거절 반응 뒤 즉시 재권유하지 않고 간격을 둡니다.",
+          "대화 시작 예시",
+          `"네 생각을 존중하고 싶어. 결론을 강요하지 않고 오래 친구로 곁에 있을게."`,
+          "기도 포인트",
+          `- ${nSub(name)} 경계심이 완만하게 풀리도록`,
+          "- 내가 결과 집착 대신 충성에 집중하도록",
+        ]
+      : [
+          "접근 방식: 저항 완충형 접근",
+          "핵심 실행",
+          "1. 상대가 싫어하는 전도 방식 목록을 먼저 파악합니다.",
+          "2. 피해야 할 방식은 완전히 중단하고 관계 회복 신호를 보냅니다.",
+          "3. 공통 관심사 기반 만남을 통해 대화 마찰을 줄입니다.",
+          "4. 신뢰 회복 후 신앙 질문이 나오면 짧게만 답합니다.",
+          "대화 시작 예시",
+          `"내가 불편하게 했던 방식이 있다면 먼저 바꾸고 싶어. 네가 편한 방식으로 대화하자."`,
+          "기도 포인트",
+          `- ${nObj(name)} 향한 관계의 긴장이 완화되도록`,
+          "- 내 말이 아니라 삶의 열매가 먼저 보이도록",
+        ],
+
+    oikos: alt === 0
+      ? [
+          "접근 방식: 오이코스 관계 전도",
+          "핵심 실행",
+          "1. 생활 반경 안에서 자연스러운 만남 빈도를 확보합니다.",
+          "2. 상대 필요를 파악해 작은 도움을 먼저 제공합니다.",
+          `3. ${input.situation}에 공감하는 대화로 신뢰를 쌓습니다.`,
+          "4. 분위기가 열리면 부담 낮은 모임부터 초대합니다.",
+          "대화 시작 예시",
+          `"요즘 어떻게 지내는지 궁금했어. 네 이야기를 먼저 충분히 듣고 싶어."`,
+          "기도 포인트",
+          `- ${nSub(name)} 일상 속에서 하나님의 선하심을 보도록`,
+          "- 관계의 문이 자연스럽게 열리도록",
+        ]
+      : [
+          "접근 방식: 신뢰-대화-초대 3단계",
+          "핵심 실행",
+          "1. 신뢰: 약속을 지키는 작은 행동을 반복합니다.",
+          "2. 대화: 상대 관심사 중심으로 경청 비율을 높입니다.",
+          "3. 초대: 모임 목적과 분위기를 짧고 명확하게 안내합니다.",
+          "4. 후속: 만남 뒤 24시간 내 피드백 메시지를 보냅니다.",
+          "대화 시작 예시",
+          `"최근에 네가 고민하는 부분을 들으면서, 내가 도움 될 수 있는 부분이 있는지 계속 생각했어."`,
+          "기도 포인트",
+          `- ${nObj(name)} 향한 내 관심이 진심으로 전달되도록`,
+          "- 작은 접점이 복음 대화로 이어지도록",
+        ],
+  };
+
+  return [...baseHeader, "", ...sections[track]].join("\n");
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const {
     targetName = "",
     relationship,
-    situation,
+    situation = "",
     interest,
     additionalContext,
     variationIndex = 0,
   } = body;
 
-  const relLabel = RELATIONSHIP_LABELS[relationship] || relationship;
-  const interestLabel = INTEREST_LABELS[interest] || interest;
-
-  // Try AI first
-  const openai = getOpenAIClient();
-  if (openai) {
-    try {
-      const namePart = targetName
-        ? `- 전도 대상자 이름: ${targetName}`
-        : "- 전도 대상자 이름: 미입력(이름 언급 생략)";
-
-      const userMessage = [
-        `다음 정보를 바탕으로 전도 전략을 작성해주세요 (${variationIndex + 1}번째 변형):`,
-        namePart,
-        `- 관계: ${relLabel}`,
-        `- 현재 상황: ${situation}`,
-        `- 신앙에 대한 태도: ${interestLabel}`,
-        additionalContext ? `- 추가 정보: ${additionalContext}` : "",
-        "",
-        "이전과 다른 새로운 관점과 전략으로 작성해주세요.",
-      ].filter(Boolean).join("\n");
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: EVANGELISM_PROMPT },
-          { role: "user", content: userMessage },
-        ],
-        temperature: 0.9,
-        max_tokens: 1000,
-      });
-
-      const actionPoints = completion.choices[0]?.message?.content || "";
-      if (actionPoints) return NextResponse.json({ actionPoints });
-    } catch {
-      // Fall through to template
-    }
-  }
-
-  // Fallback to templates
-  const idx = variationIndex % FALLBACK_TEMPLATES.length;
-  const actionPoints = FALLBACK_TEMPLATES[idx](
-    targetName || undefined,
-    relLabel,
+  const track = classifyTrack({
+    relationship,
+    interest,
     situation,
-    interestLabel
-  );
+    additionalContext,
+  });
 
-  return NextResponse.json({ actionPoints });
+  const relationshipLabel =
+    RELATIONSHIP_LABELS[relationship] || sanitizeRelation(relationship);
+  const interestLabel = INTEREST_LABELS[interest] || "미확인";
+
+  const actionPoints = buildStrategy(track, variationIndex, {
+    targetName,
+    relationshipLabel,
+    interestLabel,
+    situation,
+    additionalContext,
+  });
+
+  return NextResponse.json({ actionPoints, track });
+}
+
+function sanitizeRelation(value: unknown): string {
+  if (typeof value !== "string" || !value.trim()) return "관계 미입력";
+  return value;
 }

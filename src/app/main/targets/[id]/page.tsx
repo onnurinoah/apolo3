@@ -8,7 +8,6 @@ import { useInvitation } from "@/hooks/useInvitation";
 import { usePrayer } from "@/hooks/usePrayer";
 import { prayerTopics } from "@/data/prayerTopics";
 import { PrayerTopic } from "@/types/prayer";
-import { EvangelismTarget } from "@/types/target";
 import {
   TargetStatus,
   STATUS_CONFIG,
@@ -21,7 +20,7 @@ import CopyButton from "@/components/ui/CopyButton";
 import ShareButton from "@/components/ui/ShareButton";
 import RefreshButton from "@/components/ui/RefreshButton";
 
-type TabId = "prayer" | "strategy" | "invite" | "video";
+type TabId = "prayer" | "strategy" | "invite";
 type ContentLength = "short" | "medium" | "long";
 
 const STATUS_ORDER: TargetStatus[] = ["praying", "approaching", "invited", "attending", "decided"];
@@ -139,107 +138,6 @@ function ResultArea({
   );
 }
 
-// ─── 추천 영상 탭 ──────────────────────────────────────────
-function VideoTab({ target }: { target: EvangelismTarget }) {
-  const keywords = useMemo(() => {
-    const words: string[] = [];
-    if (target.situation) words.push(target.situation);
-    const interestMap: Record<string, string[]> = {
-      positive: ["복음", "신앙 간증"],
-      curious: ["기독교란", "하나님 존재"],
-      neutral: ["삶의 의미", "행복"],
-      negative: ["기독교 오해", "신앙 의문"],
-      hurt: ["교회 상처 회복", "치유"],
-    };
-    words.push(...(interestMap[target.interest] || []));
-    if (target.notes) {
-      const noteWords = target.notes.split(/[,.\s·]+/).filter(w => w.length >= 2).slice(0, 2);
-      words.push(...noteWords);
-    }
-    return Array.from(new Set(words)).slice(0, 5);
-  }, [target]);
-
-  const [customKeyword, setCustomKeyword] = useState("");
-
-  const ytUrl = (keyword: string, channel: string) =>
-    `https://www.youtube.com/results?search_query=${encodeURIComponent(keyword + " " + channel)}`;
-
-  return (
-    <div className="space-y-4">
-      <p className="text-xs text-gray-400">
-        {target.name}의 상황에 맞는 영상을 추천합니다.
-      </p>
-
-      <div>
-        <p className="text-xs font-semibold text-gray-500 mb-2">추천 키워드</p>
-        <div className="flex flex-wrap gap-1.5">
-          {keywords.map((kw, i) => (
-            <span key={i} className="px-2.5 py-1 bg-apolo-yellow-light rounded-full text-xs font-medium text-gray-700">
-              {kw}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        {keywords.slice(0, 3).map((kw, i) => (
-          <div key={i} className="space-y-1.5">
-            <a href={ytUrl(kw, "온누리교회")} target="_blank" rel="noopener noreferrer"
-               className="block bg-white rounded-xl border border-gray-100 px-4 py-3 active:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-400">온누리교회</p>
-                  <p className="text-sm font-medium text-gray-900">&quot;{kw}&quot; 관련 영상</p>
-                </div>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M7 17L17 7M17 7H7M17 7V17" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-            </a>
-            <a href={ytUrl(kw, "CGN TV")} target="_blank" rel="noopener noreferrer"
-               className="block bg-white rounded-xl border border-gray-100 px-4 py-3 active:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-gray-400">CGN TV</p>
-                  <p className="text-sm font-medium text-gray-900">&quot;{kw}&quot; 관련 영상</p>
-                </div>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M7 17L17 7M17 7H7M17 7V17" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-            </a>
-          </div>
-        ))}
-      </div>
-
-      <div>
-        <p className="text-xs font-semibold text-gray-500 mb-2">직접 검색</p>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={customKeyword}
-            onChange={(e) => setCustomKeyword(e.target.value)}
-            placeholder="키워드 입력..."
-            className="flex-1 px-4 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
-          />
-          {customKeyword.trim() && (
-            <div className="flex gap-1">
-              <a href={ytUrl(customKeyword, "온누리교회")} target="_blank" rel="noopener noreferrer"
-                 className="px-3 py-2.5 bg-apolo-yellow rounded-xl text-xs font-bold text-gray-900 active:bg-apolo-yellow-dark transition-colors whitespace-nowrap">
-                온누리
-              </a>
-              <a href={ytUrl(customKeyword, "CGN TV")} target="_blank" rel="noopener noreferrer"
-                 className="px-3 py-2.5 bg-apolo-yellow rounded-xl text-xs font-bold text-gray-900 active:bg-apolo-yellow-dark transition-colors whitespace-nowrap">
-                CGN
-              </a>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── 상태 배지 ──────────────────────────────────────────────
 function StatusBadge({ status }: { status: TargetStatus }) {
   const cfg = STATUS_CONFIG[status];
@@ -301,9 +199,10 @@ export default function TargetDetailPage() {
     if (!target) return;
     invitation.generate({
       personName: target.name,
-      relationship: target.relationship === "neighbor" ? "acquaintance" : target.relationship,
+      relationship: target.relationship,
       eventType: inviteEvent,
       location: inviteLocation,
+      additionalContext: `${target.situation}. ${target.notes || ""}`,
       length: inviteLength,
     });
   };
@@ -311,9 +210,10 @@ export default function TargetDetailPage() {
     if (!target) return;
     invitation.regenerate({
       personName: target.name,
-      relationship: target.relationship === "neighbor" ? "acquaintance" : target.relationship,
+      relationship: target.relationship,
       eventType: inviteEvent,
       location: inviteLocation,
+      additionalContext: `${target.situation}. ${target.notes || ""}`,
       length: inviteLength,
     });
   };
@@ -323,7 +223,7 @@ export default function TargetDetailPage() {
     if (!target) return;
     prayer.generate({
       personName: target.name,
-      relationship: target.relationship === "neighbor" ? "acquaintance" : target.relationship,
+      relationship: target.relationship,
       topic: prayerTopic,
       additionalContext: `${target.situation}. ${target.notes || ""}`,
       length: prayerLength,
@@ -333,7 +233,7 @@ export default function TargetDetailPage() {
     if (!target) return;
     prayer.regenerate({
       personName: target.name,
-      relationship: target.relationship === "neighbor" ? "acquaintance" : target.relationship,
+      relationship: target.relationship,
       topic: prayerTopic,
       additionalContext: `${target.situation}. ${target.notes || ""}`,
       length: prayerLength,
@@ -460,7 +360,7 @@ export default function TargetDetailPage() {
         </div>
       </div>
 
-      {/* ─── 하단 탭: 기도문 | 전략 | 초대 | 영상 ────── */}
+      {/* ─── 하단 탭: 기도문 | 전략 | 초대 ───────────── */}
       <div className="px-4">
         <div className="flex bg-gray-100 rounded-xl p-1">
           {(
@@ -468,7 +368,6 @@ export default function TargetDetailPage() {
               { id: "prayer" as TabId, label: "기도문" },
               { id: "strategy" as TabId, label: "전략" },
               { id: "invite" as TabId, label: "초대" },
-              { id: "video" as TabId, label: "영상" },
             ] as const
           ).map((tab) => (
             <button
@@ -605,7 +504,6 @@ export default function TargetDetailPage() {
           </div>
         )}
 
-        {activeTab === "video" && <VideoTab target={target} />}
       </div>
 
       {/* 메모 */}
