@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useTargets, getPrayStreak, getDaysSinceLastPrayer } from "@/hooks/useTargets";
+import { fixParticles } from "@/lib/korean";
 import Onboarding, { useOnboarding } from "@/components/Onboarding";
 import {
   EvangelismTarget,
@@ -297,12 +298,15 @@ export default function TargetsPage() {
     return () => window.clearTimeout(timer);
   }, [recentlyDeleted]);
 
-  const missionTarget = targets.find((t) => !t.prayerDates.includes(new Date().toISOString().split("T")[0])) || targets[0];
-  const missionText = missionTarget
-    ? !missionTarget.prayerDates.includes(new Date().toISOString().split("T")[0])
-      ? `${missionTarget.name}을 위해 오늘 기도 체크`
-      : `${missionTarget.name}에게 안부 메시지 보내기`
-    : "오늘 대상자 1명 등록하기";
+  const todayStr = new Date().toISOString().split("T")[0];
+  const missionTarget = targets.find((t) => !t.prayerDates.includes(todayStr)) || targets[0];
+  const missionText = fixParticles(
+    missionTarget
+      ? !missionTarget.prayerDates.includes(todayStr)
+        ? `${missionTarget.name}을 위해 오늘 기도 체크`
+        : `${missionTarget.name}에게 안부 메시지 보내기`
+      : "오늘 대상자 1명 등록하기"
+  );
 
   const handleAdd = useCallback(
     (input: Omit<EvangelismTarget, "id" | "createdAt" | "prayerDates" | "status">) => {

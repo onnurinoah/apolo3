@@ -227,9 +227,15 @@ function PrayerGrowthWidget({ streak }: { streak: number }) {
           <GrowthCharacter stage={stage} />
         </div>
       </div>
-      <p className="mt-2 text-sm font-bold text-gray-900">{safeStreak}일 연속</p>
+      <p className="mt-2 text-sm font-bold text-gray-900">
+        {safeStreak === 0 ? "첫 기도를 기록해보세요" : `${safeStreak}일 연속`}
+      </p>
       <p className="mt-0.5 text-[11px] text-amber-700">
-        {nextIn === null ? "성장 완료" : `다음 성장까지 ${nextIn}일`}
+        {safeStreak === 0
+          ? "위의 버튼을 눌러 시작해보세요"
+          : nextIn === null
+          ? "성장 완료"
+          : `다음 성장까지 ${nextIn}일`}
       </p>
       <div className="mt-2.5 grid grid-cols-5 gap-1.5">
         {Array.from({ length: GROWTH_STAGE_TOTAL }, (_, idx) => {
@@ -372,31 +378,43 @@ function StrategyResultArea({
   }
 
   const sections = parseStrategy(text);
+  const parseFailed = sections.actions.length === 0 && sections.example.length === 0;
+
+  if (parseFailed) {
+    return (
+      <div className="space-y-3 animate-fade-in-up">
+        <textarea
+          className="w-full min-h-[240px] p-4 rounded-2xl bg-apolo-kakao text-gray-900 text-[14px] leading-relaxed resize-none focus:outline-none shadow-bubble"
+          value={text}
+          readOnly
+        />
+        <div className="flex gap-2 flex-wrap">
+          <RefreshButton onClick={onRegenerate} disabled={false} />
+          <CopyButton text={text} />
+          <ShareButton text={text} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3 animate-fade-in-up">
-      <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3">
-        <p className="text-xs font-bold text-gray-700 mb-1">📌 전략요약</p>
-        <div className="space-y-0.5">
-          {sections.summary.map((line, idx) => (
-            <p key={idx} className="text-xs text-gray-600 leading-relaxed">{line}</p>
-          ))}
-        </div>
-      </div>
-
       {sections.approach && (
         <div className="bg-amber-50 rounded-2xl border border-amber-100 px-4 py-3">
-          <p className="text-xs font-bold text-amber-800">🎯 접근방식</p>
-          <p className="text-sm font-semibold text-amber-900 mt-1">{sections.approach}</p>
+          <p className="text-[10px] font-semibold text-amber-600 mb-0.5 uppercase tracking-wide">접근 방향</p>
+          <p className="text-sm font-bold text-amber-900">{sections.approach}</p>
         </div>
       )}
 
       {sections.actions.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3">
-          <p className="text-xs font-bold text-gray-700 mb-1.5">✅ 핵심실행</p>
-          <div className="space-y-1.5">
+          <p className="text-xs font-bold text-gray-700 mb-2">이렇게 해보세요</p>
+          <div className="space-y-2">
             {sections.actions.map((line, idx) => (
-              <p key={idx} className="text-xs text-gray-700 leading-relaxed">{idx + 1}. {line}</p>
+              <div key={idx} className="flex gap-2">
+                <span className="shrink-0 w-4 h-4 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold flex items-center justify-center mt-0.5">{idx + 1}</span>
+                <p className="text-xs text-gray-700 leading-relaxed">{line}</p>
+              </div>
             ))}
           </div>
         </div>
@@ -404,19 +422,19 @@ function StrategyResultArea({
 
       {sections.example.length > 0 && (
         <div className="bg-blue-50 rounded-2xl border border-blue-100 px-4 py-3">
-          <p className="text-xs font-bold text-blue-700 mb-1">💬 대화시작예시</p>
+          <p className="text-xs font-bold text-blue-700 mb-1.5">이렇게 말해보세요</p>
           {sections.example.map((line, idx) => (
-            <p key={idx} className="text-xs text-blue-900 leading-relaxed">&quot;{line}&quot;</p>
+            <p key={idx} className="text-sm text-blue-900 leading-relaxed italic">&ldquo;{line}&rdquo;</p>
           ))}
         </div>
       )}
 
       {sections.prayerPoints.length > 0 && (
         <div className="bg-purple-50 rounded-2xl border border-purple-100 px-4 py-3">
-          <p className="text-xs font-bold text-purple-700 mb-1">🙏 기도포인트</p>
-          <div className="space-y-1">
+          <p className="text-xs font-bold text-purple-700 mb-1.5">기도 제목</p>
+          <div className="space-y-1.5">
             {sections.prayerPoints.map((line, idx) => (
-              <p key={idx} className="text-xs text-purple-900 leading-relaxed">- {line}</p>
+              <p key={idx} className="text-xs text-purple-900 leading-relaxed">{line}</p>
             ))}
           </div>
         </div>
@@ -760,40 +778,21 @@ export default function TargetDetailPage() {
         </button>
       </div>
 
-      {/* ─── 기도 성장 ───────────────────────────────────── */}
-      <div className="px-4 pb-4">
-        <PrayerGrowthWidget streak={streak} />
-      </div>
-
-      {/* ─── 다음 액션 추천 ─────────────────────────────── */}
-      <div className="px-4 pb-4">
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl px-4 py-3">
-          <p className="text-xs font-bold text-amber-800 mb-1.5">다음 단계 추천</p>
-          <div className="space-y-1">
-            {NEXT_ACTIONS[target.status].map((action, i) => (
-              <p key={i} className="text-xs text-amber-700">
-                {i + 1}. {action}
-              </p>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* ─── 하단 탭: 기도문 받기 | 전도 컨설팅 | 초대메시지 생성 ───── */}
       <div className="px-4 pt-1">
         <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-3" />
         <div className="grid grid-cols-3 gap-2">
           {(
             [
-              { id: "prayer" as TabId, label: "기도문 받기" },
-              { id: "strategy" as TabId, label: "전도 컨설팅" },
-              { id: "invite" as TabId, label: "초대메시지 생성" },
+              { id: "prayer" as TabId, top: "기도문", bottom: "받기" },
+              { id: "strategy" as TabId, top: "전도", bottom: "컨설팅" },
+              { id: "invite" as TabId, top: "초대", bottom: "메시지" },
             ] as const
           ).map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`min-h-[54px] px-2 rounded-2xl border text-[11px] font-bold leading-tight transition-all ${
+              className={`min-h-[56px] px-2 rounded-2xl border font-bold leading-snug transition-all flex flex-col items-center justify-center ${
                 activeTab === tab.id
                   ? tab.id === "prayer"
                     ? "bg-blue-500 border-blue-500 text-white shadow-sm"
@@ -803,7 +802,8 @@ export default function TargetDetailPage() {
                   : "bg-white border-gray-200 text-gray-500 active:bg-gray-50"
               }`}
             >
-              {tab.label}
+              <span className="text-[13px]">{tab.top}</span>
+              <span className="text-[13px]">{tab.bottom}</span>
             </button>
           ))}
         </div>
@@ -813,8 +813,11 @@ export default function TargetDetailPage() {
       <div className="px-4 py-4 flex-1">
         {activeTab === "prayer" && (
           <div className="space-y-3">
+            {/* 기도 성장 위젯 */}
+            <PrayerGrowthWidget streak={streak} />
+
             <p className="text-xs text-gray-400">
-              대상자를 위한 중보기도문을 생성합니다.
+              주제와 길이를 선택하면 맞춤 기도문을 만들어 드립니다.
             </p>
 
             {/* 주제 선택 */}
@@ -859,8 +862,20 @@ export default function TargetDetailPage() {
 
         {activeTab === "strategy" && (
           <div className="space-y-3">
+            {/* 다음 단계 추천 */}
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl px-4 py-3">
+              <p className="text-xs font-bold text-amber-800 mb-1.5">다음 단계 추천</p>
+              <div className="space-y-1">
+                {NEXT_ACTIONS[target.status].map((action, i) => (
+                  <p key={i} className="text-xs text-amber-700">
+                    {i + 1}. {action}
+                  </p>
+                ))}
+              </div>
+            </div>
+
             <p className="text-xs text-gray-400">
-              대상자의 상황에 맞는 맞춤 전도 컨설팅을 제공합니다.
+              상황에 맞는 접근 방향과 대화 예시를 드립니다.
             </p>
             {!evangelism.actionPoints && !evangelism.isLoading && (
               <button
@@ -881,7 +896,7 @@ export default function TargetDetailPage() {
         {activeTab === "invite" && (
           <div className="space-y-3">
             <p className="text-xs text-gray-400">
-              대상자에게 보낼 카카오톡 초대메시지를 생성합니다.
+              카카오톡으로 보내기 좋은 초대 메시지를 만들어 드립니다.
             </p>
 
             {/* 모임명 */}
