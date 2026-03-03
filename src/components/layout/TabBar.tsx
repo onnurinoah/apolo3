@@ -110,7 +110,7 @@ export default function TabBar() {
               >
                 {tab.icon(active)}
                 <span
-                  className={`text-[13px] font-bold ${
+                  className={`text-[13px] font-bold whitespace-nowrap ${
                     active ? "text-gray-900" : "text-gray-400"
                   }`}
                 >

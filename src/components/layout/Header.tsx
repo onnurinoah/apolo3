@@ -114,20 +114,20 @@ export default function Header() {
 
           <div className="flex items-center gap-2">
             {nickname && (
-              <span className="h-8 px-3 rounded-full bg-apolo-yellow-light text-apolo-yellow-dark text-xs font-bold inline-flex items-center">
+              <span className="h-8 max-w-[92px] px-3 rounded-full bg-apolo-yellow-light text-apolo-yellow-dark text-xs font-bold inline-flex items-center truncate">
                 {nickname}
               </span>
             )}
             <button
               onClick={() => void handleSignOut()}
-              className="h-8 px-2.5 rounded-full border border-gray-200 text-gray-700 text-xs font-semibold active:bg-gray-50"
+              className="h-8 px-2.5 rounded-full border border-gray-200 text-gray-700 text-xs font-semibold whitespace-nowrap active:bg-gray-50"
               aria-label="로그아웃"
             >
               로그아웃
             </button>
             <button
               onClick={replayIntro}
-              className="h-8 px-2.5 rounded-full border border-gray-200 text-gray-700 flex items-center gap-1.5 active:bg-gray-50"
+              className="h-8 px-2.5 rounded-full border border-gray-200 text-gray-700 flex items-center gap-1.5 whitespace-nowrap active:bg-gray-50"
               aria-label="인트로 다시 보기"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">

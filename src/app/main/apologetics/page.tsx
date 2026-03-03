@@ -252,8 +252,12 @@ function AskView({ onSubmit }: { onSubmit: (q: string) => void }) {
 function BrowseView({ onSelect }: { onSelect: (q: QuestionItem) => void }) {
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<CategoryId | undefined>();
+  const [showAllDefault, setShowAllDefault] = useState(false);
   const { results, isLoading } = useQuestionSearch(query, selectedCategory);
   const { isFavorite } = useFavorites();
+  const isDefaultListing = !query.trim() && !selectedCategory;
+  const visibleResults =
+    isDefaultListing && !showAllDefault ? results.slice(0, 8) : results;
 
   return (
     <div className="flex flex-col">
@@ -280,7 +284,10 @@ function BrowseView({ onSelect }: { onSelect: (q: QuestionItem) => void }) {
       {/* 카테고리 칩 */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-2">
         <button
-          onClick={() => setSelectedCategory(undefined)}
+          onClick={() => {
+            setSelectedCategory(undefined);
+            setShowAllDefault(false);
+          }}
           className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
             !selectedCategory ? "bg-apolo-yellow text-gray-900" : "bg-gray-100 text-gray-500"
           }`}
@@ -290,7 +297,10 @@ function BrowseView({ onSelect }: { onSelect: (q: QuestionItem) => void }) {
         {categories.map((cat) => (
           <button
             key={cat.id}
-            onClick={() => setSelectedCategory(cat.id)}
+            onClick={() => {
+              setSelectedCategory(cat.id);
+              setShowAllDefault(true);
+            }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
               selectedCategory === cat.id ? "bg-apolo-yellow text-gray-900" : "bg-gray-100 text-gray-500"
             }`}
@@ -314,7 +324,7 @@ function BrowseView({ onSelect }: { onSelect: (q: QuestionItem) => void }) {
             {!query && !selectedCategory && (
               <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide">전체 질문 ({results.length})</p>
             )}
-            {results.map((q) => {
+            {visibleResults.map((q) => {
               const cat = categories.find((c) => c.id === q.categoryId);
               const fav = isFavorite(q.id);
               return (
@@ -338,6 +348,16 @@ function BrowseView({ onSelect }: { onSelect: (q: QuestionItem) => void }) {
                 </button>
               );
             })}
+            {isDefaultListing && results.length > 8 && (
+              <button
+                onClick={() => setShowAllDefault((prev) => !prev)}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 text-sm font-semibold text-gray-700 active:bg-gray-100"
+              >
+                {showAllDefault
+                  ? "기본 목록으로 접기"
+                  : `전체 질문 보기 (${results.length}개)`}
+              </button>
+            )}
           </>
         )}
       </div>

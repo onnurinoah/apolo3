@@ -23,7 +23,7 @@ type GatheringConfig = {
 function StatusBadge({ status }: { status: EvangelismTarget["status"] }) {
   const cfg = STATUS_CONFIG[status];
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm font-semibold ${cfg.color}`}>
+    <span className={`inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded-full text-sm font-semibold ${cfg.color}`}>
       {cfg.label}
     </span>
   );
@@ -39,8 +39,8 @@ function TargetCard({
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-4">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-base font-bold text-gray-900 truncate">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <span className="text-lg font-bold text-gray-900 truncate">
           {target.name}
         </span>
         <StatusBadge status={target.status} />
@@ -48,7 +48,7 @@ function TargetCard({
       <p className="mt-1 text-sm text-gray-500">{rel.label}</p>
       <Link
         href={`/main/targets/${target.id}`}
-        className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-gray-200 bg-gray-50 py-2.5 text-sm font-semibold text-gray-700 active:bg-gray-100"
+        className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 py-2.5 text-sm font-semibold text-amber-900 active:brightness-95"
       >
         더보기
       </Link>
@@ -337,7 +337,7 @@ export default function TargetsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-gray-900">내 전도 대상자</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="text-xs text-gray-500 mt-0.5">
             내 대상자 {targets.length}명
             {globalTargetCount !== null &&
               ` · ${
@@ -348,7 +348,7 @@ export default function TargetsPage() {
         {isAdmin && (
           <Link
             href="/main/admin"
-            className="px-3 py-1.5 rounded-full border border-gray-200 text-sm font-semibold text-gray-600"
+            className="whitespace-nowrap px-3 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-600"
           >
             관리자
           </Link>
@@ -356,8 +356,8 @@ export default function TargetsPage() {
       </div>
 
       {!showForm && (
-        <div className="bg-white border border-amber-200 rounded-2xl px-4 py-3">
-          <p className="text-sm font-semibold text-amber-800">오늘의 한 걸음</p>
+        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-2xl px-4 py-3">
+          <p className="text-sm font-semibold text-amber-700">오늘의 한 걸음</p>
           <p className="text-base font-bold text-amber-900 mt-0.5">{missionText}</p>
         </div>
       )}
