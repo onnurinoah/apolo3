@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
   const normalizedQuestionText =
     typeof questionText === "string" ? questionText.trim() : "";
   const hasQuestionText = normalizedQuestionText.length > 0;
+  const isDirectQuestion = !hasQuestionId && hasQuestionText;
 
   // 1) DB 라이브러리 질문 선택은 기존처럼 DB 우선
   if (hasQuestionId) {
@@ -185,7 +186,28 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 3) AI 사용 불가/실패 시 DB 유사 매칭 폴백
+  // 3) 직접질문은 AI 전용으로 동작 (실패 시 안내)
+  if (isDirectQuestion) {
+    if (!openai) {
+      return NextResponse.json({
+        answer:
+          "현재 AI 답변을 사용할 수 없습니다. OpenAI API 키를 확인해 주세요.",
+        styleId: normalizedStyle,
+        source: "fallback",
+        questionId,
+      });
+    }
+
+    return NextResponse.json({
+      answer:
+        "AI 답변 생성에 일시적으로 실패했습니다. 같은 질문을 다시 시도해 주세요.",
+      styleId: normalizedStyle,
+      source: "fallback",
+      questionId,
+    });
+  }
+
+  // 4) DB 질문 경로에서만 유사 매칭 폴백
   if (hasQuestionText) {
     const best = findBestQuestionMatch(allQuestions, normalizedQuestionText, 13);
     if (best) {
