@@ -409,6 +409,26 @@ export default function TargetsPage() {
 
   return (
     <div className="px-4 py-4 space-y-4">
+      {gatheringConfig.isOpen && gatheringConfig.eventName && (
+        <div className="bg-gradient-to-r from-amber-300 to-yellow-300 border border-amber-400 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
+          <div className="min-w-0">
+            <p className="text-[11px] font-extrabold text-amber-950">
+              집회초대 등록 열림
+            </p>
+            <p className="text-sm font-extrabold text-amber-950 truncate">
+              {gatheringConfig.eventName}
+              {gatheringConfig.eventDate ? ` · ${gatheringConfig.eventDate}` : ""}
+            </p>
+          </div>
+          <Link
+            href="/main/gathering"
+            className="shrink-0 px-3 py-2 rounded-xl bg-amber-900 text-amber-50 text-xs font-extrabold"
+          >
+            등록
+          </Link>
+        </div>
+      )}
+
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
@@ -430,26 +450,6 @@ export default function TargetsPage() {
           </Link>
         )}
       </div>
-
-      {gatheringConfig.isOpen && gatheringConfig.eventName && (
-        <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-amber-100 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] font-semibold text-amber-700">
-              집회초대 등록 열림
-            </p>
-            <p className="text-sm font-bold text-amber-900 truncate">
-              {gatheringConfig.eventName}
-              {gatheringConfig.eventDate ? ` · ${gatheringConfig.eventDate}` : ""}
-            </p>
-          </div>
-          <Link
-            href="/main/gathering"
-            className="shrink-0 px-3 py-2 rounded-xl bg-apolo-yellow text-gray-900 text-xs font-bold"
-          >
-            등록
-          </Link>
-        </div>
-      )}
 
       {!showForm && (
         <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-2xl px-4 py-3">

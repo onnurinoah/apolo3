@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { allQuestions } from "@/data/questions";
 import { getOpenAIClient } from "@/lib/openai";
 import { getApologeticsPrompt, ApologeticsLength } from "@/lib/prompts";
-import { findBestQuestionMatch } from "@/lib/search";
+import { findBestQuestionMatch, searchQuestionsWithScore } from "@/lib/search";
 
 function normalizeLength(raw: unknown): ApologeticsLength {
   return raw === "detailed" ? "detailed" : "concise";
@@ -23,6 +23,27 @@ function toDetailed(primary: string, support?: string): string {
     return primary;
   }
   return `${primary}\n\n핵심 근거 정리\n${support}`;
+}
+
+function buildAiGuide(length: ApologeticsLength): string {
+  if (length === "detailed") {
+    return [
+      "출력 형식:",
+      "1) 한줄답",
+      "2) 핵심 이유 3가지 (각 1-2문장)",
+      "3) 오해 바로잡기 1가지",
+      "4) 대화에서 바로 쓰는 한 문장",
+      "문장은 쉽고 짧게 작성하세요.",
+    ].join("\n");
+  }
+
+  return [
+    "출력 형식:",
+    "1) 한줄답",
+    "2) 핵심 이유 2가지",
+    "3) 대화에서 바로 쓰는 한 문장",
+    "문장은 쉽고 짧게 작성하세요.",
+  ].join("\n");
 }
 
 function pickDatabaseAnswer(
@@ -108,14 +129,40 @@ export async function POST(request: NextRequest) {
 
   try {
     const systemPrompt = getApologeticsPrompt(normalizedStyle, normalizedLength);
+    const relatedMatches =
+      typeof questionText === "string" && questionText.trim()
+        ? searchQuestionsWithScore(allQuestions, questionText)
+            .filter((item) => item.score >= 8)
+            .slice(0, 3)
+        : [];
+
+    const relatedContext = relatedMatches
+      .map((item, idx) => {
+        const formalAnswer =
+          item.question.answers.find((a) => a.styleId === "formal") ||
+          item.question.answers[0];
+        const concise = toConcise(formalAnswer?.content ?? "");
+        return `${idx + 1}. 질문: ${item.question.question}\n   참고 답변 핵심: ${concise}`;
+      })
+      .join("\n");
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: questionText || "이 질문에 답해주세요." },
+        {
+          role: "user",
+          content: [
+            `사용자 질문: ${questionText || "이 질문에 답해주세요."}`,
+            "",
+            buildAiGuide(normalizedLength),
+            relatedContext
+              ? `\n관련 DB 참고 (질문 의미가 맞을 때만 사용):\n${relatedContext}`
+              : "\n관련 DB 참고: 없음",
+          ].join("\n"),
+        },
       ],
-      temperature: 0.6,
+      temperature: 0.35,
       max_tokens: normalizedLength === "detailed" ? 900 : 420,
     });
 

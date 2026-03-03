@@ -21,9 +21,10 @@ export default function GatheringPage() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [form, setForm] = useState({
-    inviteeName: "",
     inviteCount: "1",
-    phone: "",
+    inviteeName: "",
+    myName: "",
+    myPhone: "",
     prayerRequest: "",
     agreedPrivacy: false,
   });
@@ -51,8 +52,8 @@ export default function GatheringPage() {
   }, []);
 
   const needsPrivacyConsent = useMemo(
-    () => Boolean(form.phone.trim()),
-    [form.phone]
+    () => Boolean(form.myPhone.trim()),
+    [form.myPhone]
   );
 
   const submit = async () => {
@@ -65,9 +66,10 @@ export default function GatheringPage() {
         body: JSON.stringify({
           eventName: config.eventName,
           eventDate: config.eventDate,
-          inviteeName: form.inviteeName,
           inviteCount: Number(form.inviteCount),
-          phone: form.phone,
+          inviteeName: form.inviteeName,
+          submitterName: form.myName,
+          phone: form.myPhone,
           prayerRequest: form.prayerRequest,
           agreedPrivacy: form.agreedPrivacy,
         }),
@@ -81,9 +83,10 @@ export default function GatheringPage() {
 
       setMessage("등록되었습니다.");
       setForm({
-        inviteeName: "",
         inviteCount: "1",
-        phone: "",
+        inviteeName: "",
+        myName: "",
+        myPhone: "",
         prayerRequest: "",
         agreedPrivacy: false,
       });
@@ -120,7 +123,9 @@ export default function GatheringPage() {
   return (
     <div className="px-4 py-4 space-y-4">
       <div>
-        <h2 className="text-lg font-bold text-gray-900">집회초대 등록</h2>
+        <h2 className="text-lg font-bold text-gray-900">
+          {config.eventName ? `${config.eventName} 초대 등록` : "집회초대 등록"}
+        </h2>
         <p className="text-xs text-gray-500 mt-1">
           필요한 정보만 빠르게 입력해 주세요.
         </p>
@@ -151,20 +156,6 @@ export default function GatheringPage() {
 
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1">
-            초대할 사람 이름 (선택)
-          </label>
-          <input
-            value={form.inviteeName}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, inviteeName: e.target.value }))
-            }
-            placeholder="예: 엄마"
-            className="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">
             초대희망 (명) *
           </label>
           <input
@@ -180,12 +171,40 @@ export default function GatheringPage() {
 
         <div>
           <label className="block text-xs font-semibold text-gray-500 mb-1">
-            전화번호 (선택)
+            초대할 사람 이름 (선택)
           </label>
           <input
-            value={form.phone}
+            value={form.inviteeName}
             onChange={(e) =>
-              setForm((prev) => ({ ...prev, phone: e.target.value }))
+              setForm((prev) => ({ ...prev, inviteeName: e.target.value }))
+            }
+            placeholder="예: 엄마"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">
+            본인이름 (선택)
+          </label>
+          <input
+            value={form.myName}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, myName: e.target.value }))
+            }
+            placeholder="예: 홍길동"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1">
+            본인전화번호 (선택)
+          </label>
+          <input
+            value={form.myPhone}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, myPhone: e.target.value }))
             }
             placeholder="예: 010-1234-5678"
             className="w-full px-3.5 py-2.5 rounded-xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
@@ -202,7 +221,9 @@ export default function GatheringPage() {
               }
               className="mt-0.5"
             />
-            <span>전화번호 입력에 따른 개인정보 수집에 동의합니다.</span>
+            <span>
+              입력하신 개인정보는 이벤트 및 집회 안내용으로만 사용됩니다. 동의하시나요?
+            </span>
           </label>
         )}
 
@@ -233,4 +254,3 @@ export default function GatheringPage() {
     </div>
   );
 }
-

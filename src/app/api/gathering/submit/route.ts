@@ -24,6 +24,10 @@ export async function POST(request: NextRequest) {
       : null;
   const inviteeName =
     typeof payload.inviteeName === "string" ? payload.inviteeName.trim() : "";
+  const submitterName =
+    typeof payload.submitterName === "string"
+      ? payload.submitterName.trim()
+      : "";
   const inviteCount = Number(payload.inviteCount);
   const phone =
     typeof payload.phone === "string" ? payload.phone.trim() : "";
@@ -55,6 +59,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const mergedPrayerRequest = submitterName
+    ? `[신청자: ${submitterName}]\n${prayerRequest}`
+    : prayerRequest;
+
   const { error } = await supabase.from("gathering_submissions").insert({
     user_id: user.id,
     event_name: eventName,
@@ -62,7 +70,7 @@ export async function POST(request: NextRequest) {
     invitee_name: inviteeName || null,
     invite_count: Math.floor(inviteCount),
     phone: phone || null,
-    prayer_request: prayerRequest,
+    prayer_request: mergedPrayerRequest,
     agreed_privacy: phone ? agreedPrivacy : false,
   });
 
@@ -78,4 +86,3 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ ok: true });
 }
-
