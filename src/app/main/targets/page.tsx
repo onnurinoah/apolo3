@@ -39,19 +39,23 @@ function TargetCard({
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-4">
-      <div className="flex items-center justify-between gap-2 min-w-0">
-        <span className="text-lg font-bold text-gray-900 truncate">
-          {target.name}
-        </span>
-        <StatusBadge status={target.status} />
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-xl font-bold text-gray-900 truncate">
+              {target.name}
+            </span>
+            <StatusBadge status={target.status} />
+          </div>
+          <p className="mt-1 text-sm text-gray-500">{rel.label}</p>
+        </div>
+        <Link
+          href={`/main/targets/${target.id}`}
+          className="shrink-0 inline-flex items-center justify-center rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 px-3.5 py-2 text-sm font-semibold text-amber-900 active:brightness-95"
+        >
+          더보기
+        </Link>
       </div>
-      <p className="mt-1 text-sm text-gray-500">{rel.label}</p>
-      <Link
-        href={`/main/targets/${target.id}`}
-        className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 py-2.5 text-sm font-semibold text-amber-900 active:brightness-95"
-      >
-        더보기
-      </Link>
     </div>
   );
 }
