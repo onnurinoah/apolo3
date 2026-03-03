@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { useTargets, getPrayStreak, getDaysSinceLastPrayer } from "@/hooks/useTargets";
-import { fixParticles } from "@/lib/korean";
+import { josa } from "@/lib/korean";
 import Onboarding, { useOnboarding } from "@/components/Onboarding";
 import {
   EvangelismTarget,
@@ -19,55 +19,6 @@ type QuickTab = "prayer" | "strategy" | "invite";
 
 function tabHref(targetId: string, tab: QuickTab) {
   return `/main/targets/${targetId}?tab=${tab}`;
-}
-
-function QuickFeatureHub({ firstTargetId }: { firstTargetId?: string }) {
-  const entries = [
-    {
-      id: "prayer" as QuickTab,
-      label: "기도문 받기",
-      helper: "바로 생성",
-      href: firstTargetId ? tabHref(firstTargetId, "prayer") : "/main/prayer",
-      color: "bg-blue-50 border-blue-100 text-blue-900",
-      helperColor: "text-blue-600",
-    },
-    {
-      id: "strategy" as QuickTab,
-      label: "대화 전략",
-      helper: "바로 추천",
-      href: firstTargetId ? tabHref(firstTargetId, "strategy") : "/main/evangelism",
-      color: "bg-amber-50 border-amber-100 text-amber-900",
-      helperColor: "text-amber-600",
-    },
-    {
-      id: "invite" as QuickTab,
-      label: "초대메시지",
-      helper: "바로 작성",
-      href: firstTargetId ? tabHref(firstTargetId, "invite") : "/main/invitation",
-      color: "bg-purple-50 border-purple-100 text-purple-900",
-      helperColor: "text-purple-600",
-    },
-  ];
-
-  return (
-    <div>
-      <p className="text-[11px] font-semibold text-gray-400 mb-2">빠른 시작</p>
-      <div className="grid grid-cols-3 gap-2">
-        {entries.map((entry) => (
-          <Link
-            key={entry.id}
-            href={entry.href}
-            className={`rounded-2xl border px-3 py-3 text-center transition-colors active:brightness-95 ${entry.color}`}
-          >
-            <p className="text-[13px] font-bold leading-tight">{entry.label}</p>
-            <p className={`mt-0.5 text-[11px] font-medium ${entry.helperColor}`}>
-              {entry.helper}
-            </p>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 // ─── 상태 배지 ───────────────────────────────────────────────
@@ -376,15 +327,12 @@ export default function TargetsPage() {
   }, [recentlyDeleted]);
 
   const todayStr = new Date().toISOString().split("T")[0];
-  const firstTargetId = targets[0]?.id;
   const missionTarget = targets.find((t) => !t.prayerDates.includes(todayStr)) || targets[0];
-  const missionText = fixParticles(
-    missionTarget
-      ? !missionTarget.prayerDates.includes(todayStr)
-        ? `${missionTarget.name}을 위해 오늘 기도 체크`
-        : `${missionTarget.name}에게 안부 메시지 보내기`
-      : "오늘 대상자 1명 등록하기"
-  );
+  const missionText = missionTarget
+    ? !missionTarget.prayerDates.includes(todayStr)
+      ? `${missionTarget.name}${josa(missionTarget.name, "을/를")} 위해 오늘 기도 체크`
+      : `${missionTarget.name}에게 안부 메시지 보내기`
+    : "오늘 대상자 1명 등록하기";
 
   const handleAdd = useCallback(
     (input: Omit<EvangelismTarget, "id" | "createdAt" | "prayerDates" | "status">) => {
@@ -421,10 +369,6 @@ export default function TargetsPage() {
           )}
         </div>
       </div>
-
-      {!showForm && (
-        <QuickFeatureHub firstTargetId={firstTargetId} />
-      )}
 
       {!showForm && (
         <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-2xl px-4 py-3">
