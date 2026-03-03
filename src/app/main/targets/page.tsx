@@ -16,6 +16,11 @@ import {
 } from "@/types/target";
 
 type QuickTab = "prayer" | "strategy" | "invite";
+type GatheringConfig = {
+  isOpen: boolean;
+  eventName: string;
+  eventDate: string | null;
+};
 
 function tabHref(targetId: string, tab: QuickTab) {
   return `/main/targets/${targetId}?tab=${tab}`;
@@ -319,12 +324,56 @@ export default function TargetsPage() {
   const { show: showOnboarding, done: onboardingDone } = useOnboarding();
   const [showForm, setShowForm] = useState(false);
   const [recentlyDeleted, setRecentlyDeleted] = useState<EvangelismTarget | null>(null);
+  const [globalTargetCount, setGlobalTargetCount] = useState<number | null>(null);
+  const [isGlobalTargetCount, setIsGlobalTargetCount] = useState(false);
+  const [gatheringConfig, setGatheringConfig] = useState<GatheringConfig>({
+    isOpen: false,
+    eventName: "",
+    eventDate: null,
+  });
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (!recentlyDeleted) return;
     const timer = window.setTimeout(() => setRecentlyDeleted(null), 4500);
     return () => window.clearTimeout(timer);
   }, [recentlyDeleted]);
+
+  useEffect(() => {
+    let alive = true;
+    async function loadExtras() {
+      try {
+        const [countRes, cfgRes, meRes] = await Promise.all([
+          fetch("/api/metrics/targets-total", { cache: "no-store" }),
+          fetch("/api/gathering/config", { cache: "no-store" }),
+          fetch("/api/admin/me", { cache: "no-store" }),
+        ]);
+        const [countData, cfgData, meData] = await Promise.all([
+          countRes.json(),
+          cfgRes.json(),
+          meRes.json(),
+        ]);
+
+        if (!alive) return;
+        if (typeof countData.count === "number") {
+          setGlobalTargetCount(countData.count);
+          setIsGlobalTargetCount(Boolean(countData.isGlobal));
+        }
+        setGatheringConfig({
+          isOpen: Boolean(cfgData.isOpen),
+          eventName: cfgData.eventName ?? "",
+          eventDate: cfgData.eventDate ?? null,
+        });
+        setIsAdmin(Boolean(meData.isAdmin));
+      } catch {
+        // non-critical
+      }
+    }
+    void loadExtras();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const todayStr = new Date().toISOString().split("T")[0];
   const missionTarget = targets.find((t) => !t.prayerDates.includes(todayStr)) || targets[0];
@@ -364,11 +413,43 @@ export default function TargetsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-gray-900">내 전도 대상자</h2>
-          {targets.length > 0 && (
-            <p className="text-xs text-gray-400 mt-0.5">{targets.length}명을 위해 기도하고 있어요</p>
-          )}
+          <p className="text-xs text-gray-400 mt-0.5">
+            내 대상자 {targets.length}명
+            {globalTargetCount !== null &&
+              ` · ${
+                isGlobalTargetCount ? "전체" : "현재 사용자"
+              } ${globalTargetCount.toLocaleString()}명`}
+          </p>
         </div>
+        {isAdmin && (
+          <Link
+            href="/main/admin"
+            className="px-3 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-600"
+          >
+            관리자
+          </Link>
+        )}
       </div>
+
+      {gatheringConfig.isOpen && gatheringConfig.eventName && (
+        <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-amber-100 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold text-amber-700">
+              집회초대 등록 열림
+            </p>
+            <p className="text-sm font-bold text-amber-900 truncate">
+              {gatheringConfig.eventName}
+              {gatheringConfig.eventDate ? ` · ${gatheringConfig.eventDate}` : ""}
+            </p>
+          </div>
+          <Link
+            href="/main/gathering"
+            className="shrink-0 px-3 py-2 rounded-xl bg-apolo-yellow text-gray-900 text-xs font-bold"
+          >
+            등록
+          </Link>
+        </div>
+      )}
 
       {!showForm && (
         <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-2xl px-4 py-3">

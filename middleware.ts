@@ -1,10 +1,8 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { type NextRequest } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 
-export async function middleware(_request: NextRequest) {
-  // TODO: 로그인 기능 활성화 시 Supabase 세션 체크로 교체
-  // import { updateSession } from "@/lib/supabase/middleware";
-  // return await updateSession(request);
-  return NextResponse.next();
+export async function middleware(request: NextRequest) {
+  return await updateSession(request);
 }
 
 export const config = {
