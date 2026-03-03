@@ -19,7 +19,7 @@ const ONBOARDING_SLIDES = [
       </div>
     ),
     title: "APOLO에 오신 것을 환영합니다",
-    desc: "전도의 모든 과정을 함께하는\nAI 변증 도우미입니다.",
+    desc: "기도와 관계 중심의 전도 여정을\n함께 설계하는 동행 앱입니다.",
   },
   {
     icon: (
@@ -43,8 +43,8 @@ const ONBOARDING_SLIDES = [
         </svg>
       </div>
     ),
-    title: "전도 중 받은 질문에 바로 답변",
-    desc: "270개+ 변증 DB를 우선 검색하고\n필요할 때만 AI로 보완합니다.\n음성으로도 질문할 수 있어요.",
+    title: "질문에 차분하게 답해요",
+    desc: "자주 묻는 질문 아카이브를 먼저 보고\n필요할 때 AI 설명으로 보완할 수 있어요.",
   },
   {
     icon: (

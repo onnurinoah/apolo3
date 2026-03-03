@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { TouchEvent, useRef, useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useTargets, getPrayStreak } from "@/hooks/useTargets";
 import { useEvangelism } from "@/hooks/useEvangelism";
@@ -24,6 +24,7 @@ import RefreshButton from "@/components/ui/RefreshButton";
 
 type TabId = "prayer" | "strategy" | "invite";
 type ContentLength = "short" | "medium" | "long";
+const TAB_ORDER: TabId[] = ["prayer", "strategy", "invite"];
 
 const STATUS_ORDER: TargetStatus[] = ["praying", "approaching", "invited", "attending", "decided"];
 
@@ -487,6 +488,8 @@ export default function TargetDetailPage() {
   const [inviteEvent, setInviteEvent] = useState("주일예배");
   const [inviteLocation, setInviteLocation] = useState("");
   const [inviteLength, setInviteLength] = useState<ContentLength>("medium");
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
 
   const target = targets.find((t) => t.id === id);
 
@@ -500,6 +503,37 @@ export default function TargetDetailPage() {
   const changeTab = (tab: TabId) => {
     setActiveTab(tab);
     router.replace(`/main/targets/${id}?tab=${tab}`, { scroll: false });
+  };
+
+  const moveTabBySwipe = (direction: "next" | "prev") => {
+    const currentIndex = TAB_ORDER.indexOf(activeTab);
+    if (currentIndex < 0) return;
+    const nextIndex =
+      direction === "next"
+        ? Math.min(TAB_ORDER.length - 1, currentIndex + 1)
+        : Math.max(0, currentIndex - 1);
+    if (nextIndex === currentIndex) return;
+    changeTab(TAB_ORDER[nextIndex]);
+  };
+
+  const onContentTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+    touchStartXRef.current = e.changedTouches[0]?.clientX ?? null;
+    touchStartYRef.current = e.changedTouches[0]?.clientY ?? null;
+  };
+
+  const onContentTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
+    const startX = touchStartXRef.current;
+    const startY = touchStartYRef.current;
+    const endX = e.changedTouches[0]?.clientX ?? null;
+    const endY = e.changedTouches[0]?.clientY ?? null;
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    if (startX === null || endX === null || startY === null || endY === null) return;
+
+    const deltaX = endX - startX;
+    const deltaY = endY - startY;
+    if (Math.abs(deltaX) < 42 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+    moveTabBySwipe(deltaX < 0 ? "next" : "prev");
   };
 
   // 전도전략 생성
@@ -797,33 +831,33 @@ export default function TargetDetailPage() {
         <div className="grid grid-cols-3 gap-2">
           {(
             [
-              { id: "prayer" as TabId, top: "기도문", bottom: "받기" },
-              { id: "strategy" as TabId, top: "대화", bottom: "전략" },
-              { id: "invite" as TabId, top: "초대", bottom: "메시지" },
+              { id: "prayer" as TabId, label: "기도문받기" },
+              { id: "strategy" as TabId, label: "대화전략" },
+              { id: "invite" as TabId, label: "초대메시지" },
             ] as const
           ).map((tab) => (
             <button
               key={tab.id}
               onClick={() => changeTab(tab.id)}
-              className={`min-h-[56px] px-2 rounded-2xl border font-bold leading-snug transition-all flex flex-col items-center justify-center ${
+              className={`min-h-[58px] px-2 rounded-2xl border font-bold text-sm transition-all flex items-center justify-center ${
                 activeTab === tab.id
-                  ? tab.id === "prayer"
-                    ? "bg-blue-500 border-blue-500 text-white shadow-sm"
-                    : tab.id === "strategy"
-                    ? "bg-amber-500 border-amber-500 text-white shadow-sm"
-                    : "bg-purple-500 border-purple-500 text-white shadow-sm"
+                  ? "bg-apolo-yellow border-apolo-yellow text-gray-900 shadow-sm"
                   : "bg-white border-gray-200 text-gray-500 active:bg-gray-50"
               }`}
             >
-              <span className="text-[13px]">{tab.top}</span>
-              <span className="text-[13px]">{tab.bottom}</span>
+              {tab.label}
             </button>
           ))}
         </div>
+        <p className="mt-1.5 text-[11px] text-gray-400 text-center">좌우로 밀어서 탭 전환</p>
       </div>
 
       {/* ─── 탭 콘텐츠 ──────────────────────────────────── */}
-      <div className="px-4 py-4 flex-1">
+      <div
+        className="px-4 py-4 flex-1 touch-pan-y"
+        onTouchStart={onContentTouchStart}
+        onTouchEnd={onContentTouchEnd}
+      >
         {activeTab === "prayer" && (
           <div className="space-y-3 animate-tab-slide">
             {/* 기도 성장 위젯 */}

@@ -108,21 +108,21 @@ function TargetCard({
         <div className="grid grid-cols-3 gap-2">
           <Link
             href={tabHref(target.id, "prayer")}
-            className="py-2 rounded-xl border border-blue-100 bg-blue-50 text-blue-700 text-xs font-semibold text-center active:brightness-95"
+            className="min-h-[50px] px-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-[12px] font-bold text-center inline-flex items-center justify-center active:brightness-95"
           >
-            기도문
+            기도문받기
           </Link>
           <Link
             href={tabHref(target.id, "strategy")}
-            className="py-2 rounded-xl border border-amber-100 bg-amber-50 text-amber-700 text-xs font-semibold text-center active:brightness-95"
+            className="min-h-[50px] px-2 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-800 text-[12px] font-bold text-center inline-flex items-center justify-center active:brightness-95"
           >
-            전략
+            대화전략
           </Link>
           <Link
             href={tabHref(target.id, "invite")}
-            className="py-2 rounded-xl border border-purple-100 bg-purple-50 text-purple-700 text-xs font-semibold text-center active:brightness-95"
+            className="min-h-[50px] px-2 rounded-xl border border-orange-200 bg-orange-50 text-orange-800 text-[12px] font-bold text-center inline-flex items-center justify-center active:brightness-95"
           >
-            초대
+            초대메시지
           </Link>
         </div>
         <p className="mt-2 text-[11px] text-amber-700 truncate">다음: {nextAction}</p>
