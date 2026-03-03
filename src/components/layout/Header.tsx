@@ -94,7 +94,7 @@ export default function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
-        <div className="flex items-center justify-between h-16 px-4">
+        <div className="flex items-center justify-between h-14 px-4">
           <button
             onClick={() => router.push("/")}
             className="flex items-center gap-2 active:opacity-70 transition-opacity"
@@ -114,20 +114,20 @@ export default function Header() {
 
           <div className="flex items-center gap-2">
             {nickname && (
-              <span className="h-9 px-3.5 rounded-full bg-apolo-yellow-light text-apolo-yellow-dark text-sm font-bold inline-flex items-center">
+              <span className="h-8 px-3 rounded-full bg-apolo-yellow-light text-apolo-yellow-dark text-xs font-bold inline-flex items-center">
                 {nickname}
               </span>
             )}
             <button
               onClick={() => void handleSignOut()}
-              className="h-9 px-3 rounded-full border border-gray-200 text-gray-700 text-sm font-bold active:bg-gray-50"
+              className="h-8 px-2.5 rounded-full border border-gray-200 text-gray-700 text-xs font-semibold active:bg-gray-50"
               aria-label="로그아웃"
             >
               로그아웃
             </button>
             <button
               onClick={replayIntro}
-              className="h-9 px-3 rounded-full border border-gray-200 text-gray-700 flex items-center gap-1.5 active:bg-gray-50"
+              className="h-8 px-2.5 rounded-full border border-gray-200 text-gray-700 flex items-center gap-1.5 active:bg-gray-50"
               aria-label="인트로 다시 보기"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -135,7 +135,7 @@ export default function Header() {
                 <path d="M9.75 9.2C9.75 8.03 10.72 7 12.1 7C13.33 7 14.25 7.82 14.25 8.9C14.25 10.45 12.75 10.8 12.2 11.6C11.92 12 11.9 12.25 11.9 12.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                 <circle cx="12" cy="16.2" r="1" fill="currentColor" />
               </svg>
-              <span className="text-sm font-bold">인트로</span>
+              <span className="text-xs font-semibold">인트로</span>
             </button>
           </div>
         </div>

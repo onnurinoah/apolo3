@@ -4,6 +4,21 @@ import { getOpenAIClient } from "@/lib/openai";
 import { getApologeticsPrompt, ApologeticsLength } from "@/lib/prompts";
 import { findBestQuestionMatch, searchQuestionsWithScore } from "@/lib/search";
 
+const CULT_KEYWORDS = [
+  "이단",
+  "신천지",
+  "jms",
+  "기독교복음선교회",
+  "정명석",
+  "통일교",
+  "안상홍",
+  "하나님의 교회",
+  "몰몬",
+  "여호와의 증인",
+  "천주교",
+  "가톨릭",
+];
+
 function normalizeLength(raw: unknown): ApologeticsLength {
   return raw === "detailed" ? "detailed" : "concise";
 }
@@ -43,6 +58,22 @@ function buildAiGuide(length: ApologeticsLength): string {
     "2) 핵심 이유 2가지",
     "3) 대화에서 바로 쓰는 한 문장",
     "문장은 쉽고 짧게 작성하세요.",
+  ].join("\n");
+}
+
+function buildCultDiscernmentGuide(question: string): string {
+  const q = question.toLowerCase();
+  const matched = CULT_KEYWORDS.filter((keyword) => q.includes(keyword.toLowerCase()));
+  if (matched.length === 0) return "";
+
+  return [
+    "추가 지침(이단/종교 비교 질문 감지):",
+    `질문 키워드: ${matched.join(", ")}`,
+    "1) 먼저 결론을 짧게 제시합니다.",
+    "2) 정통 복음주의 핵심 기준(삼위일체, 예수 그리스도의 유일성, 은혜로 말미암는 구원, 성경의 최종 권위)으로 분별합니다.",
+    "3) 신천지/JMS 등 특정 단체 질문이면 공방형 표현 대신 교리 차이를 핵심만 비교합니다.",
+    "4) 실제 대화에서 사용할 짧은 권면 문장 1개를 제시합니다.",
+    "5) 낙인/비하 표현은 피하고 사실-교리 중심으로 답합니다.",
   ].join("\n");
 }
 
@@ -129,14 +160,15 @@ export async function POST(request: NextRequest) {
               "",
               buildAiGuide(normalizedLength),
               "특히 이단/천주교 관련 질문이면 핵심교리 비교를 명확히 하되, 공격적 표현 없이 설명하세요.",
+              buildCultDiscernmentGuide(normalizedQuestionText),
               relatedContext
                 ? `\n관련 DB 참고 (질문 의미가 맞을 때만 사용):\n${relatedContext}`
                 : "\n관련 DB 참고: 없음",
             ].join("\n"),
           },
         ],
-        temperature: 0.3,
-        max_tokens: normalizedLength === "detailed" ? 900 : 420,
+        temperature: 0.28,
+        max_tokens: normalizedLength === "detailed" ? 1050 : 520,
       });
 
       const answer =

@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
-import { useTargets, getPrayStreak, getDaysSinceLastPrayer } from "@/hooks/useTargets";
+import { useTargets } from "@/hooks/useTargets";
 import { josa } from "@/lib/korean";
 import Onboarding, { useOnboarding } from "@/components/Onboarding";
 import {
@@ -12,19 +12,12 @@ import {
   STATUS_CONFIG,
   RELATIONSHIP_CONFIG,
   INTEREST_CONFIG,
-  NEXT_ACTIONS,
 } from "@/types/target";
-
-type QuickTab = "prayer" | "strategy" | "invite";
 type GatheringConfig = {
   isOpen: boolean;
   eventName: string;
   eventDate: string | null;
 };
-
-function tabHref(targetId: string, tab: QuickTab) {
-  return `/main/targets/${targetId}?tab=${tab}`;
-}
 
 // ─── 상태 배지 ───────────────────────────────────────────────
 function StatusBadge({ status }: { status: EvangelismTarget["status"] }) {
@@ -39,94 +32,26 @@ function StatusBadge({ status }: { status: EvangelismTarget["status"] }) {
 // ─── 대상자 카드 ─────────────────────────────────────────────
 function TargetCard({
   target,
-  onDelete,
 }: {
   target: EvangelismTarget;
-  onDelete: (t: EvangelismTarget) => void;
 }) {
-  const streak = getPrayStreak(target);
-  const daysSince = getDaysSinceLastPrayer(target);
   const rel = RELATIONSHIP_CONFIG[target.relationship];
-  const nextAction = NEXT_ACTIONS[target.status][0];
 
   return (
-    <div className="relative bg-white rounded-2xl shadow-card border border-gray-50">
-      <button
-        onClick={() => onDelete(target)}
-        className="absolute top-3 right-3 z-10 px-2 py-1 rounded-lg bg-red-50 text-red-500 text-sm font-semibold"
-      >
-        삭제
-      </button>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-4">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-base font-bold text-gray-900 truncate">
+          {target.name}
+        </span>
+        <StatusBadge status={target.status} />
+      </div>
+      <p className="mt-1 text-sm text-gray-500">{rel.label}</p>
       <Link
         href={`/main/targets/${target.id}`}
-        className="block px-4 pt-4 pb-3 active:bg-gray-50 transition-colors rounded-2xl"
+        className="mt-3 inline-flex w-full items-center justify-center rounded-xl border border-gray-200 bg-gray-50 py-2.5 text-sm font-semibold text-gray-700 active:bg-gray-100"
       >
-        <div className="flex items-start justify-between gap-3">
-          {/* 왼쪽: 이름 + 정보 */}
-          <div className="flex-1 min-w-0 pr-12">
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-lg font-bold text-gray-900">{target.name}</span>
-              <StatusBadge status={target.status} />
-            </div>
-
-            <p className="text-sm text-gray-500 mb-2">
-              {rel.label}
-              {target.situation && <> · {target.situation}</>}
-            </p>
-
-            {/* 기도 스트릭 */}
-            <div className="flex items-center gap-3">
-              {streak > 0 && (
-                <span className="inline-flex items-center gap-1 text-sm font-semibold text-orange-600">
-                  {streak}일 연속 기도
-                </span>
-              )}
-              {daysSince !== null && daysSince > 0 && (
-                <span className="text-sm text-gray-500">
-                  {daysSince === 1 ? "어제" : `${daysSince}일 전`} 기도
-                </span>
-              )}
-              {daysSince === 0 && (
-                <span className="text-sm text-green-500 font-medium">오늘 기도 완료 ✓</span>
-              )}
-              {daysSince === null && (
-                <span className="text-sm text-gray-500">아직 기도 기록 없음</span>
-              )}
-            </div>
-
-          </div>
-
-          {/* 오른쪽: 화살표 */}
-          <div className="flex-shrink-0 mt-2">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M9 18L15 12L9 6" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          </div>
-        </div>
+        더보기
       </Link>
-      <div className="px-4 pb-4">
-        <div className="grid grid-cols-3 gap-2">
-          <Link
-            href={tabHref(target.id, "prayer")}
-            className="min-h-[60px] px-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-sm font-extrabold text-center inline-flex items-center justify-center active:brightness-95"
-          >
-            기도문받기
-          </Link>
-          <Link
-            href={tabHref(target.id, "strategy")}
-            className="min-h-[60px] px-2 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-sm font-extrabold text-center inline-flex items-center justify-center active:brightness-95"
-          >
-            대화전략
-          </Link>
-          <Link
-            href={tabHref(target.id, "invite")}
-            className="min-h-[60px] px-2 rounded-xl border border-orange-200 bg-orange-50 text-orange-900 text-sm font-extrabold text-center inline-flex items-center justify-center active:brightness-95"
-          >
-            초대메시지
-          </Link>
-        </div>
-        <p className="mt-2 text-sm text-amber-700 truncate">다음: {nextAction}</p>
-      </div>
     </div>
   );
 }
@@ -320,10 +245,9 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 
 // ─── 메인 페이지 ────────────────────────────────────────────
 export default function TargetsPage() {
-  const { targets, loaded, addTarget, removeTarget, restoreTarget } = useTargets();
+  const { targets, loaded, addTarget } = useTargets();
   const { show: showOnboarding, done: onboardingDone } = useOnboarding();
   const [showForm, setShowForm] = useState(false);
-  const [recentlyDeleted, setRecentlyDeleted] = useState<EvangelismTarget | null>(null);
   const [globalTargetCount, setGlobalTargetCount] = useState<number | null>(null);
   const [isGlobalTargetCount, setIsGlobalTargetCount] = useState(false);
   const [gatheringConfig, setGatheringConfig] = useState<GatheringConfig>({
@@ -332,12 +256,6 @@ export default function TargetsPage() {
     eventDate: null,
   });
   const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    if (!recentlyDeleted) return;
-    const timer = window.setTimeout(() => setRecentlyDeleted(null), 4500);
-    return () => window.clearTimeout(timer);
-  }, [recentlyDeleted]);
 
   useEffect(() => {
     let alive = true;
@@ -390,20 +308,6 @@ export default function TargetsPage() {
     [addTarget]
   );
 
-  const handleDelete = useCallback(
-    (target: EvangelismTarget) => {
-      removeTarget(target.id);
-      setRecentlyDeleted(target);
-    },
-    [removeTarget]
-  );
-
-  const handleUndoDelete = useCallback(() => {
-    if (!recentlyDeleted) return;
-    restoreTarget(recentlyDeleted);
-    setRecentlyDeleted(null);
-  }, [recentlyDeleted, restoreTarget]);
-
   if (showOnboarding) return <Onboarding onDone={onboardingDone} />;
   if (!loaded) return null;
 
@@ -432,7 +336,7 @@ export default function TargetsPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">내 전도 대상자</h2>
+          <h2 className="text-lg font-bold text-gray-900">내 전도 대상자</h2>
           <p className="text-sm text-gray-500 mt-0.5">
             내 대상자 {targets.length}명
             {globalTargetCount !== null &&
@@ -469,7 +373,7 @@ export default function TargetsPage() {
       ) : (
         <div className="space-y-3">
           {targets.map((target) => (
-            <TargetCard key={target.id} target={target} onDelete={handleDelete} />
+            <TargetCard key={target.id} target={target} />
           ))}
         </div>
       )}
@@ -488,17 +392,6 @@ export default function TargetsPage() {
         </button>
       )}
 
-      {recentlyDeleted && (
-        <div className="fixed left-1/2 -translate-x-1/2 bottom-[7.2rem] z-40 w-[calc(100%-2rem)] max-w-[448px] bg-gray-900 text-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-lg">
-          <p className="text-sm truncate">{recentlyDeleted.name} 삭제됨</p>
-          <button
-            onClick={handleUndoDelete}
-            className="ml-3 px-2.5 py-1 rounded-lg bg-white/20 text-sm font-semibold"
-          >
-            되돌리기
-          </button>
-        </div>
-      )}
     </div>
   );
 }
