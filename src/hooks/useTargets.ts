@@ -18,6 +18,30 @@ type TargetRow = {
   prayer_dates: string[] | null;
 };
 
+const RELATIONSHIPS = new Set<EvangelismTarget["relationship"]>([
+  "family",
+  "friend",
+  "colleague",
+  "acquaintance",
+  "neighbor",
+]);
+
+const INTERESTS = new Set<EvangelismTarget["interest"]>([
+  "positive",
+  "curious",
+  "neutral",
+  "negative",
+  "hurt",
+]);
+
+const STATUSES = new Set<EvangelismTarget["status"]>([
+  "praying",
+  "approaching",
+  "invited",
+  "attending",
+  "decided",
+]);
+
 function toDbId(id: string) {
   if (/^\d+$/.test(id)) return Number(id);
   return id;
@@ -55,7 +79,54 @@ function toRowUpdates(updates: Partial<EvangelismTarget>) {
 function loadFromStorage(): EvangelismTarget[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.map((item: unknown) => {
+      const maybe = item as Record<string, unknown> | null;
+      const name =
+        typeof maybe?.name === "string" && maybe.name.trim()
+          ? maybe.name.trim()
+          : "이름 미입력";
+      const relationship = RELATIONSHIPS.has(
+        maybe?.relationship as EvangelismTarget["relationship"]
+      )
+        ? (maybe?.relationship as EvangelismTarget["relationship"])
+        : "friend";
+      const interest = INTERESTS.has(
+        maybe?.interest as EvangelismTarget["interest"]
+      )
+        ? (maybe?.interest as EvangelismTarget["interest"])
+        : "neutral";
+      const status = STATUSES.has(maybe?.status as EvangelismTarget["status"])
+        ? (maybe?.status as EvangelismTarget["status"])
+        : "praying";
+      const situation =
+        typeof maybe?.situation === "string" && maybe.situation.trim()
+          ? maybe.situation.trim()
+          : "상황 미입력";
+
+      return {
+        id:
+          typeof maybe?.id === "string" && maybe.id
+            ? maybe.id
+            : crypto.randomUUID(),
+        name,
+        relationship,
+        situation,
+        interest,
+        notes: typeof maybe?.notes === "string" ? maybe.notes : undefined,
+        status,
+        createdAt:
+          typeof maybe?.createdAt === "string" && maybe.createdAt
+            ? maybe.createdAt
+            : new Date().toISOString(),
+        prayerDates: Array.isArray(maybe?.prayerDates)
+          ? maybe.prayerDates.filter((d: unknown) => typeof d === "string")
+          : [],
+      } satisfies EvangelismTarget;
+    });
   } catch {
     return [];
   }
@@ -322,4 +393,3 @@ export function useTargets() {
     getTarget,
   };
 }
-
