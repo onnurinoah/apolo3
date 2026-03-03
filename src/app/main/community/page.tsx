@@ -63,7 +63,7 @@ export default function CommunityPage() {
         </button>
         <div>
           <h1 className="text-xl font-bold text-gray-900">기도 나눔</h1>
-          <p className="text-xs text-gray-400">
+          <p className="text-sm text-gray-400">
             서로의 기도 제목을 나누고 함께 기도해요
           </p>
         </div>
@@ -93,7 +93,7 @@ export default function CommunityPage() {
           />
 
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 text-xs text-gray-500">
+            <label className="flex items-center gap-2 text-sm text-gray-500">
               <input
                 type="checkbox"
                 checked={form.isAnonymous}
@@ -118,7 +118,7 @@ export default function CommunityPage() {
                   }))
                 }
                 placeholder="이름"
-                className="w-24 rounded-lg bg-gray-50 px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
+                className="w-24 rounded-lg bg-gray-50 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
               />
             )}
           </div>
@@ -182,14 +182,14 @@ export default function CommunityPage() {
                     <p className="font-bold text-gray-900 text-[15px]">
                       {item.title}
                     </p>
-                    <p className="mt-0.5 text-xs text-gray-400">
+                    <p className="mt-0.5 text-sm text-gray-400">
                       {item.isAnonymous
                         ? "익명의 성도"
                         : item.authorName || "이름 미입력"}{" "}
                       · {timeAgo(item.createdAt)}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-apolo-yellow-light px-2.5 py-1 text-xs font-semibold text-gray-700 inline-flex items-center gap-1">
+                  <span className="shrink-0 rounded-full bg-apolo-yellow-light px-2.5 py-1 text-sm font-semibold text-gray-700 inline-flex items-center gap-1">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C12 2 8 6 8 10V14L6 16V18H18V16L16 14V10C16 6 12 2 12 2Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" /><path d="M12 6V10M10 8H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
                     {item.prayedCount}
                   </span>
@@ -206,7 +206,7 @@ export default function CommunityPage() {
                 {isLong && !isExpanded && (
                   <button
                     onClick={() => setExpandedId(item.id)}
-                    className="mt-1 text-xs text-apolo-yellow-dark font-medium"
+                    className="mt-1 text-sm text-apolo-yellow-dark font-medium"
                   >
                     더보기
                   </button>
@@ -214,7 +214,7 @@ export default function CommunityPage() {
                 {isExpanded && isLong && (
                   <button
                     onClick={() => setExpandedId(null)}
-                    className="mt-1 text-xs text-gray-400 font-medium"
+                    className="mt-1 text-sm text-gray-400 font-medium"
                   >
                     접기
                   </button>

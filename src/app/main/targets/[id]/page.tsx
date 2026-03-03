@@ -56,7 +56,7 @@ function LengthToggle({ value, onChange }: { value: ContentLength; onChange: (v:
         <button
           key={opt.id}
           onClick={() => onChange(opt.id)}
-          className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${
+          className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-all ${
             value === opt.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"
           }`}
         >
@@ -84,132 +84,105 @@ function daysUntilNextStage(stage: GrowthStage, streak: number): number | null {
 function GrowthCharacter({ stage }: { stage: GrowthStage }) {
   if (stage.id === "egg") {
     return (
-      <svg width="82" height="82" viewBox="0 0 82 82" fill="none">
+      <svg width="92" height="92" viewBox="0 0 92 92" fill="none">
+        <ellipse cx="46" cy="80" rx="21" ry="5" fill="#FFE8A1" opacity="0.55" />
+        <ellipse cx="46" cy="47" rx="24" ry="31" fill="#FFF9E6" />
+        <ellipse cx="46" cy="47" rx="24" ry="31" fill="url(#eggGrad)" />
+        <ellipse cx="46" cy="47" rx="24" ry="31" stroke="#FACC15" strokeWidth="2.4" />
+        <ellipse cx="38" cy="34" rx="9" ry="5.6" fill="white" opacity="0.58" />
         <defs>
-          <radialGradient id="eggFill" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(33 24) rotate(61) scale(44 39)">
-            <stop stopColor="#FFFFFF" />
-            <stop offset="0.65" stopColor="#FFF3BF" />
+          <linearGradient id="eggGrad" x1="30" y1="20" x2="56" y2="76" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#FFFDF5" />
+            <stop offset="0.58" stopColor="#FFF3BF" />
             <stop offset="1" stopColor="#FFE066" />
-          </radialGradient>
-          <filter id="softShadow" x="4" y="8" width="74" height="72" filterUnits="userSpaceOnUse">
-            <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#F1C84A" floodOpacity="0.45" />
-          </filter>
+          </linearGradient>
         </defs>
-        <ellipse cx="41" cy="69" rx="18" ry="4" fill="#FFE8A1" opacity="0.45" />
-        <g filter="url(#softShadow)">
-          <ellipse cx="41" cy="41" rx="22" ry="29" fill="url(#eggFill)" stroke="#FFD43B" strokeWidth="2.5" />
-          <ellipse cx="34" cy="30" rx="8" ry="5" fill="white" opacity="0.45" />
-        </g>
       </svg>
     );
   }
 
   if (stage.id === "cracked") {
     return (
-      <svg width="82" height="82" viewBox="0 0 82 82" fill="none">
+      <svg width="92" height="92" viewBox="0 0 92 92" fill="none">
+        <ellipse cx="46" cy="80" rx="21" ry="5" fill="#FFE8A1" opacity="0.55" />
+        <ellipse cx="46" cy="47" rx="24" ry="31" fill="url(#crackGrad)" />
+        <ellipse cx="46" cy="47" rx="24" ry="31" stroke="#F4B400" strokeWidth="2.4" />
+        <path d="M42 24L49 33L43 40L51 47L45 55" stroke="#EAA600" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="58" cy="29" r="2.4" fill="#FFE066" />
+        <circle cx="34" cy="27" r="1.9" fill="#FFF1A8" />
         <defs>
-          <radialGradient id="crackEggFill" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(34 24) rotate(62) scale(44 39)">
-            <stop stopColor="#FFFFFF" />
-            <stop offset="0.64" stopColor="#FFF0B0" />
+          <linearGradient id="crackGrad" x1="28" y1="19" x2="60" y2="77" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#FFFDF4" />
+            <stop offset="0.6" stopColor="#FFE893" />
             <stop offset="1" stopColor="#FFD43B" />
-          </radialGradient>
-          <filter id="crackShadow" x="4" y="8" width="74" height="72" filterUnits="userSpaceOnUse">
-            <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#EFBB26" floodOpacity="0.45" />
-          </filter>
+          </linearGradient>
         </defs>
-        <ellipse cx="41" cy="69" rx="18" ry="4" fill="#FFE8A1" opacity="0.45" />
-        <g filter="url(#crackShadow)">
-          <ellipse cx="41" cy="41" rx="22" ry="29" fill="url(#crackEggFill)" stroke="#FFC107" strokeWidth="2.5" />
-        </g>
-        <path
-          d="M37 21L43 28L37 34L46 42L39 50"
-          stroke="#FAB005"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <circle cx="54" cy="24" r="2.5" fill="#FFE066" />
       </svg>
     );
   }
 
   if (stage.id === "chick") {
     return (
-      <svg width="82" height="82" viewBox="0 0 82 82" fill="none">
+      <svg width="92" height="92" viewBox="0 0 92 92" fill="none">
+        <ellipse cx="46" cy="80" rx="21" ry="5" fill="#FFE8A1" opacity="0.55" />
+        <circle cx="46" cy="50" r="21" fill="url(#chickGrad)" />
+        <ellipse cx="54" cy="54" rx="7.8" ry="5.6" fill="#FFF3BF" opacity="0.72" />
+        <circle cx="38.5" cy="45" r="2.25" fill="#374151" />
+        <circle cx="39.2" cy="44.2" r="0.72" fill="white" />
+        <path d="M55.5 48L67 52L55.5 56V48Z" fill="#F59F00" />
+        <path d="M35.5 70L39.5 63M47.5 70L51.5 63" stroke="#F59F00" strokeWidth="2.4" strokeLinecap="round" />
         <defs>
-          <radialGradient id="chickBody" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(36 28) rotate(58) scale(40 34)">
-            <stop stopColor="#FFF9DB" />
-            <stop offset="0.55" stopColor="#FFE066" />
+          <linearGradient id="chickGrad" x1="31" y1="31" x2="59" y2="71" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#FFF7CF" />
+            <stop offset="0.6" stopColor="#FFE066" />
             <stop offset="1" stopColor="#FFD43B" />
-          </radialGradient>
-          <filter id="chickShadow" x="8" y="10" width="66" height="66" filterUnits="userSpaceOnUse">
-            <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#EAB308" floodOpacity="0.38" />
-          </filter>
+          </linearGradient>
         </defs>
-        <ellipse cx="41" cy="69" rx="18" ry="4" fill="#FFE8A1" opacity="0.45" />
-        <g filter="url(#chickShadow)">
-          <circle cx="41" cy="43" r="19" fill="url(#chickBody)" />
-          <ellipse cx="47.5" cy="47" rx="7" ry="5.2" fill="#FFF3BF" opacity="0.62" />
-        </g>
-        <circle cx="34.5" cy="39.5" r="2.2" fill="#3F3F46" />
-        <circle cx="35.2" cy="38.8" r="0.7" fill="white" />
-        <path d="M50 42L60 45.5L50 49V42Z" fill="#FFC107" />
-        <path d="M31 61L34.5 55M43 61L46.5 55" stroke="#FAB005" strokeWidth="2.3" strokeLinecap="round" />
       </svg>
     );
   }
 
   if (stage.id === "young") {
     return (
-      <svg width="82" height="82" viewBox="0 0 82 82" fill="none">
+      <svg width="92" height="92" viewBox="0 0 92 92" fill="none">
+        <ellipse cx="46" cy="80" rx="22" ry="5" fill="#FFE8A1" opacity="0.55" />
+        <ellipse cx="41" cy="55" rx="23" ry="16" fill="url(#youngBody)" />
+        <circle cx="58" cy="41" r="11.5" fill="#FFD43B" />
+        <ellipse cx="31.5" cy="55" rx="8.8" ry="5.9" fill="#FFF3BF" opacity="0.76" />
+        <circle cx="55.2" cy="39.6" r="2.2" fill="#374151" />
+        <circle cx="56" cy="38.9" r="0.72" fill="white" />
+        <path d="M65.5 41L77 45L65.5 48.8V41Z" fill="#F59F00" />
+        <path d="M34 72L38.4 64M48.3 72L52.7 64" stroke="#EA9B00" strokeWidth="2.5" strokeLinecap="round" />
         <defs>
-          <radialGradient id="youngBody" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(33 29) rotate(52) scale(44 34)">
-            <stop stopColor="#FFF7CF" />
-            <stop offset="0.55" stopColor="#FFD43B" />
-            <stop offset="1" stopColor="#FFC107" />
-          </radialGradient>
-          <filter id="youngShadow" x="5" y="8" width="74" height="70" filterUnits="userSpaceOnUse">
-            <feDropShadow dx="0" dy="4" stdDeviation="3.5" floodColor="#D9A307" floodOpacity="0.35" />
-          </filter>
+          <linearGradient id="youngBody" x1="21" y1="41" x2="59" y2="70" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#FFF5C2" />
+            <stop offset="0.62" stopColor="#FFD43B" />
+            <stop offset="1" stopColor="#FFBF00" />
+          </linearGradient>
         </defs>
-        <ellipse cx="41" cy="69" rx="20" ry="4.5" fill="#FFE8A1" opacity="0.45" />
-        <g filter="url(#youngShadow)">
-          <ellipse cx="37.5" cy="46.5" rx="20.5" ry="14.5" fill="url(#youngBody)" />
-          <circle cx="53" cy="35" r="10" fill="#FFD43B" />
-          <ellipse cx="30" cy="46.5" rx="7.5" ry="5.2" fill="#FFF3BF" opacity="0.7" />
-        </g>
-        <circle cx="50.5" cy="33.5" r="2.1" fill="#3F3F46" />
-        <circle cx="51.2" cy="32.8" r="0.7" fill="white" />
-        <path d="M60.5 35L70.5 38L60.5 41V35Z" fill="#FAB005" />
-        <path d="M31 63L35 56M44 63L48 56" stroke="#F59F00" strokeWidth="2.4" strokeLinecap="round" />
       </svg>
     );
   }
 
   return (
-    <svg width="82" height="82" viewBox="0 0 82 82" fill="none">
+    <svg width="92" height="92" viewBox="0 0 92 92" fill="none">
+      <ellipse cx="46" cy="80" rx="23" ry="5.2" fill="#FFE8A1" opacity="0.55" />
+      <ellipse cx="39.5" cy="56" rx="24" ry="16.5" fill="url(#adultBody)" />
+      <circle cx="59" cy="40" r="12.5" fill="#FFC107" />
+      <ellipse cx="29" cy="56" rx="9.4" ry="6.3" fill="#FFF3BF" opacity="0.84" />
+      <path d="M64 28C61.5 24 58.2 23.3 55.9 26.1C55 23.7 53.2 23.3 51 25.2C49.7 26.2 49.6 28.3 50.4 30.7H64V28Z" fill="#FFE066" />
+      <circle cx="55.8" cy="38.6" r="2.3" fill="#374151" />
+      <circle cx="56.6" cy="37.8" r="0.75" fill="white" />
+      <path d="M66.5 40L79 44L66.5 48V40Z" fill="#F59F00" />
+      <path d="M32 72L36.6 64M47.2 72L51.8 64" stroke="#E99A00" strokeWidth="2.6" strokeLinecap="round" />
+      <path d="M17.2 56L11 51L16 58.2" stroke="#E99A00" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
       <defs>
-        <radialGradient id="adultBody" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(30 30) rotate(50) scale(46 34)">
+        <linearGradient id="adultBody" x1="18" y1="41" x2="61" y2="72" gradientUnits="userSpaceOnUse">
           <stop stopColor="#FFF3BF" />
-          <stop offset="0.52" stopColor="#FFD43B" />
+          <stop offset="0.58" stopColor="#FFD43B" />
           <stop offset="1" stopColor="#FFB800" />
-        </radialGradient>
-        <filter id="adultShadow" x="4" y="7" width="76" height="72" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="4" stdDeviation="3.5" floodColor="#B8860B" floodOpacity="0.34" />
-        </filter>
+        </linearGradient>
       </defs>
-      <ellipse cx="41" cy="69" rx="21" ry="4.7" fill="#FFE8A1" opacity="0.45" />
-      <g filter="url(#adultShadow)">
-        <ellipse cx="35.5" cy="47" rx="22" ry="15" fill="url(#adultBody)" />
-        <circle cx="53" cy="34" r="11.2" fill="#FFC107" />
-        <ellipse cx="26.5" cy="47" rx="8.5" ry="5.7" fill="#FFF3BF" opacity="0.82" />
-      </g>
-      <path d="M57 23.5C54.8 20 51.8 19.4 49.9 21.9C49.1 19.8 47.6 19.4 45.6 21C44.4 22 44.3 23.9 45 25.9H57V23.5Z" fill="#FFE066" />
-      <circle cx="50.3" cy="32.3" r="2.2" fill="#3F3F46" />
-      <circle cx="51" cy="31.6" r="0.7" fill="white" />
-      <path d="M60.5 34.5L72 38.3L60.5 41.8V34.5Z" fill="#F59F00" />
-      <path d="M28 64L32.4 56M42.5 64L46.9 56" stroke="#F59F00" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M13.5 47L8 43L12 49.5" stroke="#F59F00" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -222,21 +195,21 @@ function PrayerGrowthWidget({ streak }: { streak: number }) {
   const nextIn = daysUntilNextStage(stage, safeStreak);
 
   return (
-    <div className="bg-gradient-to-b from-[#FFFCF0] to-white border border-amber-100 rounded-2xl px-4 py-4 text-center">
+    <div className="bg-white border border-amber-200 rounded-2xl px-4 py-4 text-center">
       <div className="mt-1 flex justify-center">
-        <div className="scale-[1.18] origin-center">
+        <div className="scale-[1.08] origin-center">
           <GrowthCharacter stage={stage} />
         </div>
       </div>
-      <p className="mt-2 text-sm font-bold text-gray-900">
-        {safeStreak === 0 ? "첫 기도를 기록해보세요" : `${safeStreak}일 연속`}
+      <p className="mt-2 text-base font-bold text-gray-900">
+        {safeStreak === 0 ? "연속 기도 0일" : `연속 기도 ${safeStreak}일`}
       </p>
-      <p className="mt-0.5 text-[11px] text-amber-700">
+      <p className="mt-0.5 text-sm text-amber-700">
         {safeStreak === 0
-          ? "위의 버튼을 눌러 시작해보세요"
+          ? "오늘 첫 기록을 남겨보세요"
           : nextIn === null
-          ? "성장 완료"
-          : `다음 성장까지 ${nextIn}일`}
+          ? "최종 단계 도달"
+          : `다음 단계까지 ${nextIn}일`}
       </p>
       <div className="mt-2.5 grid grid-cols-5 gap-1.5">
         {Array.from({ length: GROWTH_STAGE_TOTAL }, (_, idx) => {
@@ -402,19 +375,19 @@ function StrategyResultArea({
     <div className="space-y-3 animate-fade-in-up">
       {sections.approach && (
         <div className="bg-amber-50 rounded-2xl border border-amber-100 px-4 py-3">
-          <p className="text-[10px] font-semibold text-amber-600 mb-0.5 uppercase tracking-wide">접근 방향</p>
+          <p className="text-sm font-semibold text-amber-600 mb-0.5 uppercase tracking-wide">접근 방향</p>
           <p className="text-sm font-bold text-amber-900">{sections.approach}</p>
         </div>
       )}
 
       {sections.actions.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3">
-          <p className="text-xs font-bold text-gray-700 mb-2">이렇게 해보세요</p>
+          <p className="text-sm font-bold text-gray-700 mb-2">이렇게 해보세요</p>
           <div className="space-y-2">
             {sections.actions.map((line, idx) => (
               <div key={idx} className="flex gap-2">
-                <span className="shrink-0 w-4 h-4 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold flex items-center justify-center mt-0.5">{idx + 1}</span>
-                <p className="text-xs text-gray-700 leading-relaxed">{line}</p>
+                <span className="shrink-0 w-4 h-4 rounded-full bg-amber-100 text-amber-700 text-sm font-bold flex items-center justify-center mt-0.5">{idx + 1}</span>
+                <p className="text-sm text-gray-700 leading-relaxed">{line}</p>
               </div>
             ))}
           </div>
@@ -423,7 +396,7 @@ function StrategyResultArea({
 
       {sections.example.length > 0 && (
         <div className="bg-blue-50 rounded-2xl border border-blue-100 px-4 py-3">
-          <p className="text-xs font-bold text-blue-700 mb-1.5">이렇게 말해보세요</p>
+          <p className="text-sm font-bold text-blue-700 mb-1.5">이렇게 말해보세요</p>
           {sections.example.map((line, idx) => (
             <p key={idx} className="text-sm text-blue-900 leading-relaxed italic">&ldquo;{line}&rdquo;</p>
           ))}
@@ -432,10 +405,10 @@ function StrategyResultArea({
 
       {sections.prayerPoints.length > 0 && (
         <div className="bg-purple-50 rounded-2xl border border-purple-100 px-4 py-3">
-          <p className="text-xs font-bold text-purple-700 mb-1.5">기도 제목</p>
+          <p className="text-sm font-bold text-purple-700 mb-1.5">기도 제목</p>
           <div className="space-y-1.5">
             {sections.prayerPoints.map((line, idx) => (
-              <p key={idx} className="text-xs text-purple-900 leading-relaxed">{line}</p>
+              <p key={idx} className="text-sm text-purple-900 leading-relaxed">{line}</p>
             ))}
           </div>
         </div>
@@ -454,7 +427,7 @@ function StrategyResultArea({
 function StatusBadge({ status }: { status: TargetStatus }) {
   const cfg = STATUS_CONFIG[status];
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${cfg.color}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-sm font-semibold ${cfg.color}`}>
       {cfg.label}
     </span>
   );
@@ -668,7 +641,7 @@ export default function TargetDetailPage() {
               <h1 className="text-lg font-bold text-gray-900 truncate">{target.name}</h1>
               <StatusBadge status={target.status} />
             </div>
-            <p className="text-xs text-gray-400 truncate">
+            <p className="text-sm text-gray-400 truncate">
               {rel.label} · {interestCfg.label} · {target.situation}
             </p>
           </div>
@@ -680,13 +653,13 @@ export default function TargetDetailPage() {
             <div className="flex items-center gap-2">
               <button
                 onClick={openEditPanel}
-                className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-xl text-xs font-medium"
+                className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium"
               >
                 정보 수정
               </button>
               <button
                 onClick={() => { removeTarget(id); router.push("/main/targets"); }}
-                className="px-3 py-1.5 bg-red-50 text-red-500 rounded-xl text-xs font-medium"
+                className="px-3 py-1.5 bg-red-50 text-red-500 rounded-xl text-sm font-medium"
               >
                 삭제하기
               </button>
@@ -698,10 +671,10 @@ export default function TargetDetailPage() {
       {isEditing && (
         <div className="px-4 py-3 border-b border-gray-100 bg-amber-50/40">
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-amber-700">대상자 정보 수정</p>
+            <p className="text-sm font-semibold text-amber-700">대상자 정보 수정</p>
 
             <div>
-              <p className="text-[11px] font-semibold text-gray-500 mb-1">이름/호칭</p>
+              <p className="text-sm font-semibold text-gray-500 mb-1">이름/호칭</p>
               <input
                 type="text"
                 value={editName}
@@ -711,14 +684,14 @@ export default function TargetDetailPage() {
             </div>
 
             <div>
-              <p className="text-[11px] font-semibold text-gray-500 mb-1">관계</p>
+              <p className="text-sm font-semibold text-gray-500 mb-1">관계</p>
               <div className="flex flex-wrap gap-1.5">
                 {(Object.entries(RELATIONSHIP_CONFIG) as [TargetRelationship, { label: string }][]).map(
                   ([key, cfg]) => (
                     <button
                       key={key}
                       onClick={() => setEditRelationship(key)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                      className={`px-2.5 py-1 rounded-full text-sm font-medium ${
                         editRelationship === key ? "bg-apolo-yellow text-gray-900" : "bg-white text-gray-500 border border-gray-100"
                       }`}
                     >
@@ -730,7 +703,7 @@ export default function TargetDetailPage() {
             </div>
 
             <div>
-              <p className="text-[11px] font-semibold text-gray-500 mb-1">상황</p>
+              <p className="text-sm font-semibold text-gray-500 mb-1">상황</p>
               <input
                 type="text"
                 value={editSituation}
@@ -740,14 +713,14 @@ export default function TargetDetailPage() {
             </div>
 
             <div>
-              <p className="text-[11px] font-semibold text-gray-500 mb-1">신앙 태도</p>
+              <p className="text-sm font-semibold text-gray-500 mb-1">신앙 태도</p>
               <div className="flex flex-wrap gap-1.5">
                 {(Object.entries(INTEREST_CONFIG) as [TargetInterest, { label: string }][]).map(
                   ([key, cfg]) => (
                     <button
                       key={key}
                       onClick={() => setEditInterest(key)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                      className={`px-2.5 py-1 rounded-full text-sm font-medium ${
                         editInterest === key ? "bg-apolo-yellow text-gray-900" : "bg-white text-gray-500 border border-gray-100"
                       }`}
                     >
@@ -759,7 +732,7 @@ export default function TargetDetailPage() {
             </div>
 
             <div>
-              <p className="text-[11px] font-semibold text-gray-500 mb-1">메모</p>
+              <p className="text-sm font-semibold text-gray-500 mb-1">메모</p>
               <textarea
                 value={editNotes}
                 onChange={(e) => setEditNotes(e.target.value)}
@@ -788,7 +761,7 @@ export default function TargetDetailPage() {
       {/* ─── 상태 진행 ─────────────────────────────────── */}
       <div className="px-4 py-3">
         <div className="bg-white rounded-2xl border border-gray-100 px-3 py-3">
-          <p className="text-[11px] font-semibold text-gray-500 mb-1.5">진행 상태</p>
+          <p className="text-sm font-semibold text-gray-500 mb-1.5">진행 상태</p>
           <select
             value={target.status}
             onChange={(e) => updateStatus(id, e.target.value as TargetStatus)}
@@ -854,7 +827,7 @@ export default function TargetDetailPage() {
             </button>
           ))}
         </div>
-        <p className="mt-1.5 text-[11px] text-gray-400 text-center">좌우로 밀어서 탭 전환</p>
+        <p className="mt-1.5 text-sm text-gray-400 text-center">좌우로 밀어서 탭 전환</p>
       </div>
 
       {/* ─── 탭 콘텐츠 ──────────────────────────────────── */}
@@ -868,19 +841,19 @@ export default function TargetDetailPage() {
             {/* 기도 성장 위젯 */}
             <PrayerGrowthWidget streak={streak} />
 
-            <p className="text-xs text-gray-400">
+            <p className="text-sm text-gray-400">
               주제와 길이를 선택하면 맞춤 기도문을 만들어 드립니다.
             </p>
 
             {/* 주제 선택 */}
             <div>
-              <p className="text-xs font-semibold text-gray-500 mb-1.5">기도 주제</p>
+              <p className="text-sm font-semibold text-gray-500 mb-1.5">기도 주제</p>
               <div className="flex flex-wrap gap-1.5">
                 {prayerTopics.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => setPrayerTopic(t.id)}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                    className={`px-2.5 py-1 rounded-full text-sm font-medium transition-colors ${
                       prayerTopic === t.id ? "bg-apolo-yellow text-gray-900" : "bg-gray-100 text-gray-500"
                     }`}
                   >
@@ -892,17 +865,20 @@ export default function TargetDetailPage() {
 
             {/* 길이 선택 */}
             <div>
-              <p className="text-xs font-semibold text-gray-500 mb-1.5">길이</p>
+              <p className="text-sm font-semibold text-gray-500 mb-1.5">길이</p>
               <LengthToggle value={prayerLength} onChange={setPrayerLength} />
             </div>
 
             {!prayer.prayer && !prayer.isLoading && (
-              <button
-                onClick={handlePrayer}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#FFD43B] to-[#FFC107] text-gray-900 font-extrabold text-sm active:brightness-95 transition-colors shadow-sm"
-              >
-                기도문 받기
-              </button>
+              <div className="space-y-1.5">
+                <button
+                  onClick={handlePrayer}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#FFD43B] to-[#FFC107] text-gray-900 font-extrabold text-sm active:brightness-95 transition-colors shadow-sm"
+                >
+                  기도문 받기
+                </button>
+                <p className="text-sm text-gray-500 text-center">생성 문구는 참고용으로 활용하세요.</p>
+              </div>
             )}
             <ResultArea
               isLoading={prayer.isLoading}
@@ -916,17 +892,17 @@ export default function TargetDetailPage() {
           <div className="space-y-3 animate-tab-slide">
             {/* 다음 단계 추천 */}
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl px-4 py-3">
-              <p className="text-xs font-bold text-amber-800 mb-1.5">다음 단계 추천</p>
+              <p className="text-sm font-bold text-amber-800 mb-1.5">다음 단계 추천</p>
               <div className="space-y-1">
                 {NEXT_ACTIONS[target.status].map((action, i) => (
-                  <p key={i} className="text-xs text-amber-700">
+                  <p key={i} className="text-sm text-amber-700">
                     {i + 1}. {action}
                   </p>
                 ))}
               </div>
             </div>
 
-            <p className="text-xs text-gray-400">
+            <p className="text-sm text-gray-400">
               상황에 맞는 접근 방향과 대화 예시를 드립니다.
             </p>
             {!evangelism.actionPoints && !evangelism.isLoading && (
@@ -947,13 +923,13 @@ export default function TargetDetailPage() {
 
         {activeTab === "invite" && (
           <div className="space-y-3 animate-tab-slide">
-            <p className="text-xs text-gray-400">
+            <p className="text-sm text-gray-400">
               카카오톡으로 보내기 좋은 초대 메시지를 만들어 드립니다.
             </p>
 
             {/* 모임명 */}
             <div>
-              <p className="text-xs font-semibold text-gray-500 mb-1.5">모임명</p>
+              <p className="text-sm font-semibold text-gray-500 mb-1.5">모임명</p>
               <input
                 type="text"
                 value={inviteEvent}
@@ -965,7 +941,7 @@ export default function TargetDetailPage() {
 
             {/* 장소 (선택) */}
             <div>
-              <p className="text-xs font-semibold text-gray-500 mb-1.5">장소 <span className="font-normal text-gray-400">(선택)</span></p>
+              <p className="text-sm font-semibold text-gray-500 mb-1.5">장소 <span className="font-normal text-gray-400">(선택)</span></p>
               <input
                 type="text"
                 value={inviteLocation}
@@ -977,17 +953,20 @@ export default function TargetDetailPage() {
 
             {/* 길이 선택 */}
             <div>
-              <p className="text-xs font-semibold text-gray-500 mb-1.5">메시지 길이</p>
+              <p className="text-sm font-semibold text-gray-500 mb-1.5">메시지 길이</p>
               <LengthToggle value={inviteLength} onChange={setInviteLength} />
             </div>
 
             {!invitation.message && !invitation.isLoading && (
-              <button
-                onClick={handleInvite}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#FFD43B] to-[#F59F00] text-gray-900 font-extrabold text-sm active:brightness-95 transition-colors shadow-sm"
-              >
-                초대메시지 생성
-              </button>
+              <div className="space-y-1.5">
+                <button
+                  onClick={handleInvite}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#FFD43B] to-[#F59F00] text-gray-900 font-extrabold text-sm active:brightness-95 transition-colors shadow-sm"
+                >
+                  초대메시지 생성
+                </button>
+                <p className="text-sm text-gray-500 text-center">생성 문구는 참고용으로 활용하세요.</p>
+              </div>
             )}
             <ResultArea
               isLoading={invitation.isLoading}
@@ -1003,8 +982,8 @@ export default function TargetDetailPage() {
       {target.notes && (
         <div className="px-4 pb-6">
           <div className="bg-gray-50 rounded-2xl px-4 py-3">
-            <p className="text-[11px] text-gray-400 mb-1">메모</p>
-            <p className="text-xs text-gray-600 leading-relaxed">{target.notes}</p>
+            <p className="text-sm text-gray-400 mb-1">메모</p>
+            <p className="text-sm text-gray-600 leading-relaxed">{target.notes}</p>
           </div>
         </div>
       )}

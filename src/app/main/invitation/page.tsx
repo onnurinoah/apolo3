@@ -63,7 +63,7 @@ export default function InvitationPage() {
         </p>
         <Link
           href="/main/targets"
-          className="mt-2 inline-flex text-xs font-semibold text-apolo-yellow-dark"
+          className="mt-2 inline-flex text-sm font-semibold text-apolo-yellow-dark"
         >
           내 전도 대상자에서 사용하기 →
         </Link>
@@ -71,7 +71,7 @@ export default function InvitationPage() {
 
       <div className="space-y-4">
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+          <label className="block text-sm font-semibold text-gray-500 mb-1.5">
             이름 또는 호칭 (선택)
           </label>
           <input
@@ -86,7 +86,7 @@ export default function InvitationPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+          <label className="block text-sm font-semibold text-gray-500 mb-1.5">
             관계
           </label>
           <select
@@ -105,7 +105,7 @@ export default function InvitationPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+          <label className="block text-sm font-semibold text-gray-500 mb-1.5">
             모임명 *
           </label>
           <input
@@ -118,7 +118,7 @@ export default function InvitationPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+          <label className="block text-sm font-semibold text-gray-500 mb-1.5">
             일시 (선택)
           </label>
           <input
@@ -131,7 +131,7 @@ export default function InvitationPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+          <label className="block text-sm font-semibold text-gray-500 mb-1.5">
             장소 (선택)
           </label>
           <input
@@ -144,7 +144,7 @@ export default function InvitationPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+          <label className="block text-sm font-semibold text-gray-500 mb-1.5">
             메시지 길이
           </label>
           <div className="flex gap-2">
@@ -152,7 +152,7 @@ export default function InvitationPage() {
               <button
                 key={opt.value}
                 onClick={() => setForm((f) => ({ ...f, length: opt.value }))}
-                className={`flex-1 rounded-xl py-2 text-xs font-semibold transition-colors ${
+                className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
                   form.length === opt.value
                     ? "bg-apolo-yellow text-gray-900"
                     : "bg-gray-100 text-gray-500"
@@ -172,11 +172,14 @@ export default function InvitationPage() {
       >
         {isLoading ? "생성 중..." : "초대 메시지 생성하기"}
       </button>
+      <p className="text-sm text-gray-500 text-center -mt-2">
+        생성 문구는 참고용으로 활용하세요.
+      </p>
 
       {(isLoading || message) && (
         <div className="space-y-3 animate-fade-in-up">
           <div className="flex items-center gap-2">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
               생성된 초대 메시지
             </p>
             {!isLoading && (
@@ -196,7 +199,7 @@ export default function InvitationPage() {
                   value={displayMessage}
                   onChange={(e) => setEditedMessage(e.target.value)}
                 />
-                <p className="text-xs text-gray-400 mt-1">탭하여 직접 편집 가능</p>
+                <p className="text-sm text-gray-400 mt-1">탭하여 직접 편집 가능</p>
               </>
             )}
           </div>

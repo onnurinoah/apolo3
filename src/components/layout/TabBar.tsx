@@ -96,7 +96,7 @@ export default function TabBar() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50">
-      <div className="max-w-[480px] mx-auto bg-white/95 backdrop-blur border-t border-gray-100 shadow-[0_-4px_16px_rgba(17,24,39,0.06)]">
+      <div className="max-w-[480px] mx-auto bg-white border-t border-gray-200 shadow-[0_-2px_10px_rgba(17,24,39,0.05)]">
         <div className="flex pb-[env(safe-area-inset-bottom)]">
           {tabs.map((tab) => {
             const active = pathname.startsWith(tab.href);
@@ -104,13 +104,13 @@ export default function TabBar() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[72px] py-2.5 transition-colors ${
+                className={`flex-1 flex flex-col items-center justify-center gap-1.5 min-h-[78px] py-3 transition-colors ${
                   active ? "text-apolo-yellow-dark" : "text-gray-400"
                 }`}
               >
                 {tab.icon(active)}
                 <span
-                  className={`text-[13px] font-bold ${
+                  className={`text-sm font-extrabold ${
                     active ? "text-gray-900" : "text-gray-400"
                   }`}
                 >

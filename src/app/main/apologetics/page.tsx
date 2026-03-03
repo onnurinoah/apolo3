@@ -41,14 +41,14 @@ function EditableBubble({ text, onChange }: { text: string; onChange: (v: string
           onChange={(e) => onChange(e.target.value)}
           onBlur={() => setEditing(false)}
         />
-        <p className="text-xs text-gray-400 mt-1 text-right">탭 밖을 누르면 완료</p>
+        <p className="text-sm text-gray-400 mt-1 text-right">탭 밖을 누르면 완료</p>
       </div>
     );
   }
   return (
     <div className="w-full cursor-pointer" onClick={() => setEditing(true)}>
       <ChatBubble variant="sent">{text}</ChatBubble>
-      <p className="text-xs text-gray-300 mt-1 text-right">탭하여 편집</p>
+      <p className="text-sm text-gray-300 mt-1 text-right">탭하여 편집</p>
     </div>
   );
 }
@@ -81,7 +81,7 @@ function AnswerView({ question, onBack }: { question: QuestionItem; onBack: () =
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="#374151" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-gray-400 truncate">
+          <p className="text-sm text-gray-400 truncate">
             {isCustom ? "직접 질문" : catInfo?.nameKo}
           </p>
           <p className="text-sm font-semibold text-gray-900 truncate">{question.question}</p>
@@ -97,7 +97,7 @@ function AnswerView({ question, onBack }: { question: QuestionItem; onBack: () =
 
       {isCustom && (
         <div className="mx-4 mt-2 px-3 py-1.5 bg-blue-50 rounded-xl">
-          <p className="text-xs text-blue-600">AI가 보수 개혁주의 관점으로 답변합니다</p>
+          <p className="text-sm text-blue-600">AI가 보수 개혁주의 관점으로 답변합니다</p>
         </div>
       )}
 
@@ -121,7 +121,7 @@ function AnswerView({ question, onBack }: { question: QuestionItem; onBack: () =
               <button
                 key={option.id}
                 onClick={() => setLength(option.id)}
-                className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+                className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
                   length === option.id
                     ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-400"
@@ -139,10 +139,10 @@ function AnswerView({ question, onBack }: { question: QuestionItem; onBack: () =
               }
               disabled={answer.isLoading}
             />
-            <span className="text-[11px] text-gray-300">
+            <span className="text-sm text-gray-300">
               {answer.source === "database" ? "DB" : answer.source === "ai" ? "AI" : "Fallback"}
             </span>
-            <span className="text-xs text-gray-300 ml-auto">
+            <span className="text-sm text-gray-300 ml-auto">
               {answerStyles.findIndex((s) => s.id === answer.styleId) + 1}/{answerStyles.length}
             </span>
           </div>
@@ -186,7 +186,7 @@ function AskView({ onSubmit }: { onSubmit: (q: string) => void }) {
           </svg>
         </div>
         <h2 className="text-lg font-bold text-gray-900">지금 어떤 질문을 받으셨나요?</h2>
-        <p className="text-xs text-gray-400">전도 현장에서 받은 질문을 입력하면<br />바로 답변을 만들어드려요</p>
+        <p className="text-sm text-gray-400">전도 현장에서 받은 질문을 입력하면<br />바로 답변을 만들어드려요</p>
       </div>
 
       <div className="space-y-3">
@@ -214,9 +214,9 @@ function AskView({ onSubmit }: { onSubmit: (q: string) => void }) {
         </div>
 
         {voice.isListening && (
-          <p className="text-xs text-red-500 animate-pulse text-center">듣고 있습니다... 말씀해주세요</p>
+          <p className="text-sm text-red-500 animate-pulse text-center">듣고 있습니다... 말씀해주세요</p>
         )}
-        {voice.error && <p className="text-xs text-red-400 text-center">{voice.error}</p>}
+        {voice.error && <p className="text-sm text-red-400 text-center">{voice.error}</p>}
 
         <button
           onClick={handleSubmit}
@@ -230,7 +230,7 @@ function AskView({ onSubmit }: { onSubmit: (q: string) => void }) {
       {/* 즐겨찾기 바로가기 */}
       {favorites.length > 0 && (
         <div>
-          <p className="text-xs font-semibold text-gray-400 mb-2">즐겨찾기</p>
+          <p className="text-sm font-semibold text-gray-400 mb-2">즐겨찾기</p>
           <div className="space-y-2">
             {favorites.slice(0, 3).map((fav) => (
               <button
@@ -281,7 +281,7 @@ function BrowseView({ onSelect }: { onSelect: (q: QuestionItem) => void }) {
       <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-2">
         <button
           onClick={() => setSelectedCategory(undefined)}
-          className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+          className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
             !selectedCategory ? "bg-apolo-yellow text-gray-900" : "bg-gray-100 text-gray-500"
           }`}
         >
@@ -291,7 +291,7 @@ function BrowseView({ onSelect }: { onSelect: (q: QuestionItem) => void }) {
           <button
             key={cat.id}
             onClick={() => setSelectedCategory(cat.id)}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
               selectedCategory === cat.id ? "bg-apolo-yellow text-gray-900" : "bg-gray-100 text-gray-500"
             }`}
           >
@@ -312,7 +312,7 @@ function BrowseView({ onSelect }: { onSelect: (q: QuestionItem) => void }) {
         ) : (
           <>
             {!query && !selectedCategory && (
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">전체 질문 ({results.length})</p>
+              <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide">전체 질문 ({results.length})</p>
             )}
             {results.map((q) => {
               const cat = categories.find((c) => c.id === q.categoryId);
@@ -325,7 +325,7 @@ function BrowseView({ onSelect }: { onSelect: (q: QuestionItem) => void }) {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <span className="inline-flex items-center text-[11px] font-medium text-apolo-yellow-dark bg-apolo-yellow-light px-2 py-0.5 rounded-full mb-1.5">
+                      <span className="inline-flex items-center text-sm font-medium text-apolo-yellow-dark bg-apolo-yellow-light px-2 py-0.5 rounded-full mb-1.5">
                         {cat?.nameKo}
                       </span>
                       <p className="text-sm font-medium text-gray-900 leading-snug">{q.question}</p>

@@ -4,13 +4,33 @@
 
 @layer base {
   html {
+    font-size: 16.5px;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
   }
   body {
-    @apply font-sans text-gray-900 bg-white antialiased;
+    @apply font-sans text-base text-gray-900 bg-white antialiased;
+    line-height: 1.55;
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+}
+
+@layer utilities {
+  /* Readability pass for middle-aged users: lift tiny labels globally */
+  .text-xs {
+    font-size: 0.86rem;
+    line-height: 1.35rem;
+  }
+  .text-sm {
+    font-size: 0.98rem;
+    line-height: 1.5rem;
   }
 }
 

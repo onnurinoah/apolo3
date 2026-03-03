@@ -30,7 +30,7 @@ function tabHref(targetId: string, tab: QuickTab) {
 function StatusBadge({ status }: { status: EvangelismTarget["status"] }) {
   const cfg = STATUS_CONFIG[status];
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${cfg.color}`}>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm font-semibold ${cfg.color}`}>
       {cfg.label}
     </span>
   );
@@ -53,7 +53,7 @@ function TargetCard({
     <div className="relative bg-white rounded-2xl shadow-card border border-gray-50">
       <button
         onClick={() => onDelete(target)}
-        className="absolute top-3 right-3 z-10 px-2 py-1 rounded-lg bg-red-50 text-red-500 text-[10px] font-semibold"
+        className="absolute top-3 right-3 z-10 px-2 py-1 rounded-lg bg-red-50 text-red-500 text-sm font-semibold"
       >
         삭제
       </button>
@@ -65,11 +65,11 @@ function TargetCard({
           {/* 왼쪽: 이름 + 정보 */}
           <div className="flex-1 min-w-0 pr-12">
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-base font-bold text-gray-900">{target.name}</span>
+              <span className="text-lg font-bold text-gray-900">{target.name}</span>
               <StatusBadge status={target.status} />
             </div>
 
-            <p className="text-xs text-gray-400 mb-2">
+            <p className="text-sm text-gray-500 mb-2">
               {rel.label}
               {target.situation && <> · {target.situation}</>}
             </p>
@@ -77,20 +77,20 @@ function TargetCard({
             {/* 기도 스트릭 */}
             <div className="flex items-center gap-3">
               {streak > 0 && (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-orange-600">
+                <span className="inline-flex items-center gap-1 text-sm font-semibold text-orange-600">
                   {streak}일 연속 기도
                 </span>
               )}
               {daysSince !== null && daysSince > 0 && (
-                <span className="text-[11px] text-gray-300">
+                <span className="text-sm text-gray-500">
                   {daysSince === 1 ? "어제" : `${daysSince}일 전`} 기도
                 </span>
               )}
               {daysSince === 0 && (
-                <span className="text-[11px] text-green-500 font-medium">오늘 기도 완료 ✓</span>
+                <span className="text-sm text-green-500 font-medium">오늘 기도 완료 ✓</span>
               )}
               {daysSince === null && (
-                <span className="text-[11px] text-gray-300">아직 기도 기록 없음</span>
+                <span className="text-sm text-gray-500">아직 기도 기록 없음</span>
               )}
             </div>
 
@@ -108,24 +108,24 @@ function TargetCard({
         <div className="grid grid-cols-3 gap-2">
           <Link
             href={tabHref(target.id, "prayer")}
-            className="min-h-[56px] px-2 rounded-xl border border-amber-200 bg-gradient-to-b from-amber-50 to-yellow-50 text-amber-900 text-[13px] font-extrabold text-center inline-flex items-center justify-center active:brightness-95"
+            className="min-h-[60px] px-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-sm font-extrabold text-center inline-flex items-center justify-center active:brightness-95"
           >
             기도문받기
           </Link>
           <Link
             href={tabHref(target.id, "strategy")}
-            className="min-h-[56px] px-2 rounded-xl border border-yellow-200 bg-gradient-to-b from-yellow-50 to-amber-50 text-yellow-900 text-[13px] font-extrabold text-center inline-flex items-center justify-center active:brightness-95"
+            className="min-h-[60px] px-2 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-900 text-sm font-extrabold text-center inline-flex items-center justify-center active:brightness-95"
           >
             대화전략
           </Link>
           <Link
             href={tabHref(target.id, "invite")}
-            className="min-h-[56px] px-2 rounded-xl border border-orange-200 bg-gradient-to-b from-orange-50 to-amber-50 text-orange-900 text-[13px] font-extrabold text-center inline-flex items-center justify-center active:brightness-95"
+            className="min-h-[60px] px-2 rounded-xl border border-orange-200 bg-orange-50 text-orange-900 text-sm font-extrabold text-center inline-flex items-center justify-center active:brightness-95"
           >
             초대메시지
           </Link>
         </div>
-        <p className="mt-2 text-[11px] text-amber-700 truncate">다음: {nextAction}</p>
+        <p className="mt-2 text-sm text-amber-700 truncate">다음: {nextAction}</p>
       </div>
     </div>
   );
@@ -184,7 +184,7 @@ function AddTargetForm({
 
       {/* 이름 */}
       <div>
-        <label className="block text-xs font-semibold text-gray-500 mb-1">이름 또는 호칭 *</label>
+        <label className="block text-sm font-semibold text-gray-500 mb-1">이름 또는 호칭 *</label>
         <input
           type="text"
           placeholder="예: 엄마, 준이, 영희"
@@ -196,14 +196,14 @@ function AddTargetForm({
 
       {/* 관계 */}
       <div>
-        <label className="block text-xs font-semibold text-gray-500 mb-1">관계 *</label>
+        <label className="block text-sm font-semibold text-gray-500 mb-1">관계 *</label>
         <div className="flex flex-wrap gap-2">
           {(Object.entries(RELATIONSHIP_CONFIG) as [TargetRelationship, { label: string }][]).map(
             ([key, cfg]) => (
               <button
                 key={key}
                 onClick={() => setRelationship(key)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   relationship === key ? "bg-apolo-yellow text-gray-900" : "bg-gray-100 text-gray-500"
                 }`}
               >
@@ -216,13 +216,13 @@ function AddTargetForm({
 
       {/* 상황 */}
       <div>
-        <label className="block text-xs font-semibold text-gray-500 mb-1">현재 상황 * <span className="font-normal text-gray-400">(복수 선택 가능)</span></label>
+        <label className="block text-sm font-semibold text-gray-500 mb-1">현재 상황 * <span className="font-normal text-gray-400">(복수 선택 가능)</span></label>
         <div className="flex flex-wrap gap-1.5 mb-2">
           {SITUATION_PRESETS.map((s) => (
             <button
               key={s}
               onClick={() => toggleSituation(s)}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${
+              className={`px-2.5 py-1 rounded-full text-sm font-medium transition-colors ${
                 selectedSituations.includes(s) ? "bg-apolo-yellow text-gray-900" : "bg-gray-100 text-gray-500"
               }`}
             >
@@ -238,7 +238,7 @@ function AddTargetForm({
           className="w-full px-4 py-2.5 bg-gray-50 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
         />
         {effectiveSituation && (
-          <p className="mt-1.5 text-[11px] text-gray-400 truncate">
+          <p className="mt-1.5 text-sm text-gray-400 truncate">
             선택됨: {effectiveSituation}
           </p>
         )}
@@ -246,14 +246,14 @@ function AddTargetForm({
 
       {/* 신앙 태도 */}
       <div>
-        <label className="block text-xs font-semibold text-gray-500 mb-1">신앙에 대한 태도</label>
+        <label className="block text-sm font-semibold text-gray-500 mb-1">신앙에 대한 태도</label>
         <div className="flex flex-wrap gap-2">
           {(Object.entries(INTEREST_CONFIG) as [TargetInterest, { label: string }][]).map(
             ([key, cfg]) => (
               <button
                 key={key}
                 onClick={() => setInterest(key)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   interest === key ? "bg-apolo-yellow text-gray-900" : "bg-gray-100 text-gray-500"
                 }`}
               >
@@ -266,7 +266,7 @@ function AddTargetForm({
 
       {/* 메모 */}
       <div>
-        <label className="block text-xs font-semibold text-gray-500 mb-1">
+        <label className="block text-sm font-semibold text-gray-500 mb-1">
           메모 <span className="font-normal text-gray-400">(선택)</span>
         </label>
         <textarea
@@ -303,14 +303,14 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <h3 className="text-lg font-bold text-gray-900 mb-2">
         전도 대상자를 등록해보세요
       </h3>
-      <p className="text-sm text-gray-400 mb-6 leading-relaxed">
+      <p className="text-base text-gray-500 mb-6 leading-relaxed">
         이름과 상황을 기록하면<br />
         맞춤 전도 전략, 기도문, 초대 메시지를<br />
         한곳에서 관리할 수 있어요.
       </p>
       <button
         onClick={onAdd}
-        className="px-6 py-3 rounded-2xl bg-apolo-yellow text-gray-900 font-bold text-sm active:bg-apolo-yellow-dark transition-colors"
+        className="px-6 py-3 rounded-2xl bg-apolo-yellow text-gray-900 font-bold text-base active:bg-apolo-yellow-dark transition-colors"
       >
         첫 번째 대상자 등록하기
       </button>
@@ -410,19 +410,19 @@ export default function TargetsPage() {
   return (
     <div className="px-4 py-4 space-y-4">
       {gatheringConfig.isOpen && gatheringConfig.eventName && (
-        <div className="bg-gradient-to-r from-amber-300 to-yellow-300 border border-amber-400 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
+        <div className="bg-amber-200 border border-amber-400 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
           <div className="min-w-0">
-            <p className="text-[11px] font-extrabold text-amber-950">
+            <p className="text-sm font-extrabold text-amber-950">
               집회초대 등록 열림
             </p>
-            <p className="text-sm font-extrabold text-amber-950 truncate">
+            <p className="text-base font-extrabold text-amber-950 truncate">
               {gatheringConfig.eventName}
               {gatheringConfig.eventDate ? ` · ${gatheringConfig.eventDate}` : ""}
             </p>
           </div>
           <Link
             href="/main/gathering"
-            className="shrink-0 px-3 py-2 rounded-xl bg-amber-900 text-amber-50 text-xs font-extrabold"
+            className="shrink-0 px-3 py-2 rounded-xl bg-amber-900 text-amber-50 text-sm font-extrabold"
           >
             등록
           </Link>
@@ -432,8 +432,8 @@ export default function TargetsPage() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">내 전도 대상자</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <h2 className="text-xl font-bold text-gray-900">내 전도 대상자</h2>
+          <p className="text-sm text-gray-500 mt-0.5">
             내 대상자 {targets.length}명
             {globalTargetCount !== null &&
               ` · ${
@@ -444,7 +444,7 @@ export default function TargetsPage() {
         {isAdmin && (
           <Link
             href="/main/admin"
-            className="px-3 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-600"
+            className="px-3 py-1.5 rounded-full border border-gray-200 text-sm font-semibold text-gray-600"
           >
             관리자
           </Link>
@@ -452,9 +452,9 @@ export default function TargetsPage() {
       </div>
 
       {!showForm && (
-        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-2xl px-4 py-3">
-          <p className="text-[11px] font-semibold text-amber-700">오늘의 한 걸음</p>
-          <p className="text-sm font-bold text-amber-900 mt-0.5">{missionText}</p>
+        <div className="bg-white border border-amber-200 rounded-2xl px-4 py-3">
+          <p className="text-sm font-semibold text-amber-800">오늘의 한 걸음</p>
+          <p className="text-base font-bold text-amber-900 mt-0.5">{missionText}</p>
         </div>
       )}
 
@@ -490,10 +490,10 @@ export default function TargetsPage() {
 
       {recentlyDeleted && (
         <div className="fixed left-1/2 -translate-x-1/2 bottom-[7.2rem] z-40 w-[calc(100%-2rem)] max-w-[448px] bg-gray-900 text-white rounded-2xl px-4 py-3 flex items-center justify-between shadow-lg">
-          <p className="text-xs truncate">{recentlyDeleted.name} 삭제됨</p>
+          <p className="text-sm truncate">{recentlyDeleted.name} 삭제됨</p>
           <button
             onClick={handleUndoDelete}
-            className="ml-3 px-2.5 py-1 rounded-lg bg-white/20 text-xs font-semibold"
+            className="ml-3 px-2.5 py-1 rounded-lg bg-white/20 text-sm font-semibold"
           >
             되돌리기
           </button>

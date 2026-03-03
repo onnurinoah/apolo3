@@ -70,7 +70,7 @@ export default function PrayerPage() {
         </p>
         <Link
           href="/main/targets"
-          className="mt-2 inline-flex text-xs font-semibold text-apolo-yellow-dark"
+          className="mt-2 inline-flex text-sm font-semibold text-apolo-yellow-dark"
         >
           내 전도 대상자에서 사용하기 →
         </Link>
@@ -78,7 +78,7 @@ export default function PrayerPage() {
 
       <div className="space-y-4">
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+          <label className="block text-sm font-semibold text-gray-500 mb-1.5">
             이름 또는 호칭 (선택)
           </label>
           <input
@@ -93,7 +93,7 @@ export default function PrayerPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+          <label className="block text-sm font-semibold text-gray-500 mb-1.5">
             관계
           </label>
           <select
@@ -112,7 +112,7 @@ export default function PrayerPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+          <label className="block text-sm font-semibold text-gray-500 mb-1.5">
             기도 주제
           </label>
           <div className="flex flex-wrap gap-2">
@@ -122,7 +122,7 @@ export default function PrayerPage() {
                 onClick={() =>
                   setForm((f) => ({ ...f, topic: t.id as PrayerTopic }))
                 }
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   form.topic === t.id
                     ? "bg-apolo-yellow text-gray-900"
                     : "bg-gray-100 text-gray-500"
@@ -135,7 +135,7 @@ export default function PrayerPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+          <label className="block text-sm font-semibold text-gray-500 mb-1.5">
             기도문 길이
           </label>
           <div className="flex gap-2">
@@ -143,7 +143,7 @@ export default function PrayerPage() {
               <button
                 key={opt.value}
                 onClick={() => setForm((f) => ({ ...f, length: opt.value }))}
-                className={`flex-1 rounded-xl py-2 text-xs font-semibold transition-colors ${
+                className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
                   form.length === opt.value
                     ? "bg-apolo-yellow text-gray-900"
                     : "bg-gray-100 text-gray-500"
@@ -156,7 +156,7 @@ export default function PrayerPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+          <label className="block text-sm font-semibold text-gray-500 mb-1.5">
             추가 기도 내용 (선택)
           </label>
           <textarea
@@ -177,11 +177,14 @@ export default function PrayerPage() {
       >
         {isLoading ? "생성 중..." : "기도문 생성하기"}
       </button>
+      <p className="text-sm text-gray-500 text-center -mt-2">
+        생성 문구는 참고용으로 활용하세요.
+      </p>
 
       {(isLoading || prayer) && (
         <div className="space-y-3 animate-fade-in-up">
           <div className="flex items-center gap-2">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
               생성된 기도문
             </p>
             {!isLoading && (
@@ -201,7 +204,7 @@ export default function PrayerPage() {
                   value={displayPrayer}
                   onChange={(e) => setEditedPrayer(e.target.value)}
                 />
-                <p className="text-xs text-gray-400 mt-1">탭하여 직접 편집 가능</p>
+                <p className="text-sm text-gray-400 mt-1">탭하여 직접 편집 가능</p>
               </>
             )}
           </div>

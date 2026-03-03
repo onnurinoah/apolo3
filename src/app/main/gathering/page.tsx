@@ -126,14 +126,14 @@ export default function GatheringPage() {
         <h2 className="text-lg font-bold text-gray-900">
           {config.eventName ? `${config.eventName} 초대 등록` : "집회초대 등록"}
         </h2>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-sm text-gray-500 mt-1">
           필요한 정보만 빠르게 입력해 주세요.
         </p>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">
+          <label className="block text-sm font-semibold text-gray-500 mb-1">
             집회명
           </label>
           <input
@@ -144,7 +144,7 @@ export default function GatheringPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">
+          <label className="block text-sm font-semibold text-gray-500 mb-1">
             날짜
           </label>
           <input
@@ -155,7 +155,7 @@ export default function GatheringPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">
+          <label className="block text-sm font-semibold text-gray-500 mb-1">
             초대희망 (명) *
           </label>
           <input
@@ -170,7 +170,7 @@ export default function GatheringPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">
+          <label className="block text-sm font-semibold text-gray-500 mb-1">
             초대할 사람 이름 (선택)
           </label>
           <input
@@ -184,7 +184,7 @@ export default function GatheringPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">
+          <label className="block text-sm font-semibold text-gray-500 mb-1">
             본인이름 (선택)
           </label>
           <input
@@ -198,7 +198,7 @@ export default function GatheringPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">
+          <label className="block text-sm font-semibold text-gray-500 mb-1">
             본인전화번호 (선택)
           </label>
           <input
@@ -212,7 +212,7 @@ export default function GatheringPage() {
         </div>
 
         {needsPrivacyConsent && (
-          <label className="flex items-start gap-2 text-xs text-gray-600">
+          <label className="flex items-start gap-2 text-sm text-gray-600">
             <input
               type="checkbox"
               checked={form.agreedPrivacy}
@@ -228,7 +228,7 @@ export default function GatheringPage() {
         )}
 
         <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">
+          <label className="block text-sm font-semibold text-gray-500 mb-1">
             기도제목 *
           </label>
           <textarea
@@ -249,7 +249,7 @@ export default function GatheringPage() {
           {submitting ? "등록 중..." : "등록하기"}
         </button>
 
-        {message && <p className="text-xs text-gray-500">{message}</p>}
+        {message && <p className="text-sm text-gray-500">{message}</p>}
       </div>
     </div>
   );

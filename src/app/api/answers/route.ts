@@ -80,9 +80,13 @@ export async function POST(request: NextRequest) {
   const { questionId, questionText, styleId, length } = body;
   const normalizedStyle = typeof styleId === "string" ? styleId : "formal";
   const normalizedLength = normalizeLength(length);
+  const hasQuestionId = typeof questionId === "string" && questionId.trim().length > 0;
+  const normalizedQuestionText =
+    typeof questionText === "string" ? questionText.trim() : "";
+  const hasQuestionText = normalizedQuestionText.length > 0;
 
-  // 1) 명시적 questionId가 오면 DB 즉시 응답
-  if (questionId) {
+  // 1) DB 라이브러리 질문 선택은 기존처럼 DB 우선
+  if (hasQuestionId) {
     const fromId = pickDatabaseAnswer(questionId, normalizedStyle, normalizedLength);
     if (fromId) {
       return NextResponse.json({
@@ -94,9 +98,64 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 2) 커스텀 질문도 DB 유사 매칭 우선
-  if (typeof questionText === "string" && questionText.trim()) {
-    const best = findBestQuestionMatch(allQuestions, questionText, 13);
+  // 2) 직접질문은 AI 우선 (DB는 참고/폴백)
+  const openai = getOpenAIClient();
+
+  if (openai && hasQuestionText) {
+    try {
+      const systemPrompt = getApologeticsPrompt(normalizedStyle, normalizedLength);
+      const relatedMatches = searchQuestionsWithScore(allQuestions, normalizedQuestionText)
+        .filter((item) => item.score >= 8)
+        .slice(0, 3);
+
+      const relatedContext = relatedMatches
+        .map((item, idx) => {
+          const formalAnswer =
+            item.question.answers.find((a) => a.styleId === "formal") ||
+            item.question.answers[0];
+          const concise = toConcise(formalAnswer?.content ?? "");
+          return `${idx + 1}. 질문: ${item.question.question}\n   참고 답변 핵심: ${concise}`;
+        })
+        .join("\n");
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: [
+              `사용자 질문: ${normalizedQuestionText}`,
+              "",
+              buildAiGuide(normalizedLength),
+              "특히 이단/천주교 관련 질문이면 핵심교리 비교를 명확히 하되, 공격적 표현 없이 설명하세요.",
+              relatedContext
+                ? `\n관련 DB 참고 (질문 의미가 맞을 때만 사용):\n${relatedContext}`
+                : "\n관련 DB 참고: 없음",
+            ].join("\n"),
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: normalizedLength === "detailed" ? 900 : 420,
+      });
+
+      const answer =
+        completion.choices[0]?.message?.content || "답변을 생성할 수 없습니다.";
+
+      return NextResponse.json({
+        answer,
+        styleId: normalizedStyle,
+        source: "ai",
+        questionId,
+      });
+    } catch {
+      // AI 실패 시 DB 폴백으로 이어집니다.
+    }
+  }
+
+  // 3) AI 사용 불가/실패 시 DB 유사 매칭 폴백
+  if (hasQuestionText) {
+    const best = findBestQuestionMatch(allQuestions, normalizedQuestionText, 13);
     if (best) {
       const matched = pickDatabaseAnswer(
         best.question.id,
@@ -115,69 +174,18 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 3) DB에서 충분한 매칭이 없을 때만 AI 보조
-  const openai = getOpenAIClient();
   if (!openai) {
     return NextResponse.json({
       answer:
-        "현재 AI 보조 답변을 사용할 수 없습니다. 질문 DB에서 비슷한 항목을 먼저 찾아보시거나 API 키를 확인해주세요.",
+        "현재 AI 답변을 사용할 수 없습니다. OpenAI API 키를 확인해 주세요.",
       styleId: normalizedStyle,
       source: "fallback",
       questionId,
     });
   }
 
-  try {
-    const systemPrompt = getApologeticsPrompt(normalizedStyle, normalizedLength);
-    const relatedMatches =
-      typeof questionText === "string" && questionText.trim()
-        ? searchQuestionsWithScore(allQuestions, questionText)
-            .filter((item) => item.score >= 8)
-            .slice(0, 3)
-        : [];
-
-    const relatedContext = relatedMatches
-      .map((item, idx) => {
-        const formalAnswer =
-          item.question.answers.find((a) => a.styleId === "formal") ||
-          item.question.answers[0];
-        const concise = toConcise(formalAnswer?.content ?? "");
-        return `${idx + 1}. 질문: ${item.question.question}\n   참고 답변 핵심: ${concise}`;
-      })
-      .join("\n");
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: [
-            `사용자 질문: ${questionText || "이 질문에 답해주세요."}`,
-            "",
-            buildAiGuide(normalizedLength),
-            relatedContext
-              ? `\n관련 DB 참고 (질문 의미가 맞을 때만 사용):\n${relatedContext}`
-              : "\n관련 DB 참고: 없음",
-          ].join("\n"),
-        },
-      ],
-      temperature: 0.35,
-      max_tokens: normalizedLength === "detailed" ? 900 : 420,
-    });
-
-    const answer = completion.choices[0]?.message?.content || "답변을 생성할 수 없습니다.";
-
-    return NextResponse.json({
-      answer,
-      styleId: normalizedStyle,
-      source: "ai",
-      questionId,
-    });
-  } catch {
-    return NextResponse.json(
-      { error: "답변 생성 중 오류가 발생했습니다." },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json(
+    { error: "답변 생성 중 오류가 발생했습니다." },
+    { status: 500 }
+  );
 }
