@@ -8,13 +8,7 @@ const tabs = [
     href: "/main/targets",
     label: "내 전도",
     icon: (active: boolean) => (
-      <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        className="transition-colors"
-      >
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" className="transition-colors">
         <circle
           cx="12"
           cy="8"
@@ -41,15 +35,9 @@ const tabs = [
   },
   {
     href: "/main/apologetics",
-    label: "질문답변",
+    label: "변증질문",
     icon: (active: boolean) => (
-      <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        className="transition-colors"
-      >
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" className="transition-colors">
         <path
           d="M12 2L3 7V12C3 17.55 6.84 22.74 12 24C17.16 22.74 21 17.55 21 12V7L12 2Z"
           fill={active ? "#FFD43B" : "none"}
@@ -69,13 +57,7 @@ const tabs = [
     href: "/main/community",
     label: "함께기도",
     icon: (active: boolean) => (
-      <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        className="transition-colors"
-      >
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" className="transition-colors">
         <circle
           cx="9"
           cy="7"
@@ -122,13 +104,13 @@ export default function TabBar() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[64px] py-2.5 transition-colors ${
+                className={`flex-1 flex flex-col items-center justify-center gap-1 min-h-[72px] py-2.5 transition-colors ${
                   active ? "text-apolo-yellow-dark" : "text-gray-400"
                 }`}
               >
                 {tab.icon(active)}
                 <span
-                  className={`text-xs font-medium ${
+                  className={`text-[13px] font-bold ${
                     active ? "text-gray-900" : "text-gray-400"
                   }`}
                 >

@@ -108,19 +108,19 @@ function TargetCard({
         <div className="grid grid-cols-3 gap-2">
           <Link
             href={tabHref(target.id, "prayer")}
-            className="min-h-[50px] px-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-[12px] font-bold text-center inline-flex items-center justify-center active:brightness-95"
+            className="min-h-[56px] px-2 rounded-xl border border-amber-200 bg-gradient-to-b from-amber-50 to-yellow-50 text-amber-900 text-[13px] font-extrabold text-center inline-flex items-center justify-center active:brightness-95"
           >
             기도문받기
           </Link>
           <Link
             href={tabHref(target.id, "strategy")}
-            className="min-h-[50px] px-2 rounded-xl border border-yellow-200 bg-yellow-50 text-yellow-800 text-[12px] font-bold text-center inline-flex items-center justify-center active:brightness-95"
+            className="min-h-[56px] px-2 rounded-xl border border-yellow-200 bg-gradient-to-b from-yellow-50 to-amber-50 text-yellow-900 text-[13px] font-extrabold text-center inline-flex items-center justify-center active:brightness-95"
           >
             대화전략
           </Link>
           <Link
             href={tabHref(target.id, "invite")}
-            className="min-h-[50px] px-2 rounded-xl border border-orange-200 bg-orange-50 text-orange-800 text-[12px] font-bold text-center inline-flex items-center justify-center active:brightness-95"
+            className="min-h-[56px] px-2 rounded-xl border border-orange-200 bg-gradient-to-b from-orange-50 to-amber-50 text-orange-900 text-[13px] font-extrabold text-center inline-flex items-center justify-center active:brightness-95"
           >
             초대메시지
           </Link>

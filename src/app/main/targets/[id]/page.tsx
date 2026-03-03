@@ -623,6 +623,7 @@ export default function TargetDetailPage() {
   const rel = RELATIONSHIP_CONFIG[target.relationship];
   const interestCfg = INTEREST_CONFIG[target.interest];
   const currentStatusIdx = STATUS_ORDER.indexOf(target.status);
+  const activeTabIndex = TAB_ORDER.indexOf(activeTab);
 
   const openEditPanel = () => {
     setEditName(target.name);
@@ -828,7 +829,11 @@ export default function TargetDetailPage() {
       {/* ─── 하단 탭: 기도문 받기 | 전도 컨설팅 | 초대메시지 생성 ───── */}
       <div className="px-4 pt-1">
         <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-3" />
-        <div className="grid grid-cols-3 gap-2">
+        <div className="relative grid grid-cols-3 gap-0 rounded-2xl bg-amber-50/40 p-1 border border-amber-100">
+          <div
+            className="absolute top-1 bottom-1 w-[calc((100%_-_0.5rem)_/_3)] rounded-xl bg-apolo-yellow shadow-sm transition-transform duration-200"
+            style={{ transform: `translateX(${Math.max(0, activeTabIndex) * 100}%)` }}
+          />
           {(
             [
               { id: "prayer" as TabId, label: "기도문받기" },
@@ -839,10 +844,10 @@ export default function TargetDetailPage() {
             <button
               key={tab.id}
               onClick={() => changeTab(tab.id)}
-              className={`min-h-[58px] px-2 rounded-2xl border font-bold text-sm transition-all flex items-center justify-center ${
+              className={`relative z-10 min-h-[58px] px-2 rounded-xl font-extrabold text-sm transition-all flex items-center justify-center ${
                 activeTab === tab.id
-                  ? "bg-apolo-yellow border-apolo-yellow text-gray-900 shadow-sm"
-                  : "bg-white border-gray-200 text-gray-500 active:bg-gray-50"
+                  ? "text-gray-900"
+                  : "text-gray-500 active:bg-white/70"
               }`}
             >
               {tab.label}
@@ -894,7 +899,7 @@ export default function TargetDetailPage() {
             {!prayer.prayer && !prayer.isLoading && (
               <button
                 onClick={handlePrayer}
-                className="w-full py-3 rounded-2xl bg-blue-500 text-white font-bold text-sm active:bg-blue-600 transition-colors"
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#FFD43B] to-[#FFC107] text-gray-900 font-extrabold text-sm active:brightness-95 transition-colors shadow-sm"
               >
                 기도문 받기
               </button>
@@ -927,7 +932,7 @@ export default function TargetDetailPage() {
             {!evangelism.actionPoints && !evangelism.isLoading && (
               <button
                 onClick={handleStrategy}
-                className="w-full py-3 rounded-2xl bg-amber-500 text-white font-bold text-sm active:bg-amber-600 transition-colors"
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#FFE066] to-[#FFD43B] text-gray-900 font-extrabold text-sm active:brightness-95 transition-colors shadow-sm"
               >
                 대화 전략 받기
               </button>
@@ -979,7 +984,7 @@ export default function TargetDetailPage() {
             {!invitation.message && !invitation.isLoading && (
               <button
                 onClick={handleInvite}
-                className="w-full py-3 rounded-2xl bg-purple-500 text-white font-bold text-sm active:bg-purple-600 transition-colors"
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#FFD43B] to-[#F59F00] text-gray-900 font-extrabold text-sm active:brightness-95 transition-colors shadow-sm"
               >
                 초대메시지 생성
               </button>
