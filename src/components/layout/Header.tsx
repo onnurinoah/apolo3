@@ -86,6 +86,11 @@ export default function Header() {
     setShowNicknameModal(false);
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  };
+
   return (
     <>
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
@@ -113,6 +118,13 @@ export default function Header() {
                 {nickname}
               </span>
             )}
+            <button
+              onClick={() => void handleSignOut()}
+              className="h-8 px-2.5 rounded-full border border-gray-200 text-gray-600 text-[11px] font-semibold active:bg-gray-50"
+              aria-label="로그아웃"
+            >
+              로그아웃
+            </button>
             <button
               onClick={replayIntro}
               className="h-8 px-2.5 rounded-full border border-gray-200 text-gray-600 flex items-center gap-1.5 active:bg-gray-50"
