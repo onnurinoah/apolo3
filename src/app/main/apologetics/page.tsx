@@ -377,7 +377,7 @@ export default function ApologeticsPage() {
               viewMode === "browse" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"
             }`}
           >
-            DB 라이브러리
+            자주 묻는 질문
           </button>
           <button
             onClick={() => setViewMode("ask")}

@@ -15,6 +15,61 @@ import {
   NEXT_ACTIONS,
 } from "@/types/target";
 
+type QuickTab = "prayer" | "strategy" | "invite";
+
+function tabHref(targetId: string, tab: QuickTab) {
+  return `/main/targets/${targetId}?tab=${tab}`;
+}
+
+function QuickFeatureHub({ firstTargetId }: { firstTargetId?: string }) {
+  const entries = [
+    {
+      id: "prayer" as QuickTab,
+      label: "기도문 받기",
+      helper: "바로 생성",
+      href: firstTargetId ? tabHref(firstTargetId, "prayer") : "/main/prayer",
+      color: "bg-blue-50 border-blue-100 text-blue-900",
+      helperColor: "text-blue-600",
+    },
+    {
+      id: "strategy" as QuickTab,
+      label: "대화 전략",
+      helper: "바로 추천",
+      href: firstTargetId ? tabHref(firstTargetId, "strategy") : "/main/evangelism",
+      color: "bg-amber-50 border-amber-100 text-amber-900",
+      helperColor: "text-amber-600",
+    },
+    {
+      id: "invite" as QuickTab,
+      label: "초대메시지",
+      helper: "바로 작성",
+      href: firstTargetId ? tabHref(firstTargetId, "invite") : "/main/invitation",
+      color: "bg-purple-50 border-purple-100 text-purple-900",
+      helperColor: "text-purple-600",
+    },
+  ];
+
+  return (
+    <div>
+      <p className="text-[11px] font-semibold text-gray-400 mb-2">빠른 시작</p>
+      <div className="grid grid-cols-3 gap-2">
+        {entries.map((entry) => (
+          <Link
+            key={entry.id}
+            href={entry.href}
+            className={`rounded-2xl border px-3 py-3 text-center transition-colors active:brightness-95 ${entry.color}`}
+          >
+            <p className="text-[13px] font-bold leading-tight">{entry.label}</p>
+            <p className={`mt-0.5 text-[11px] font-medium ${entry.helperColor}`}>
+              {entry.helper}
+            </p>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── 상태 배지 ───────────────────────────────────────────────
 function StatusBadge({ status }: { status: EvangelismTarget["status"] }) {
   const cfg = STATUS_CONFIG[status];
@@ -48,7 +103,7 @@ function TargetCard({
       </button>
       <Link
         href={`/main/targets/${target.id}`}
-        className="block px-4 py-4 active:bg-gray-50 transition-colors rounded-2xl"
+        className="block px-4 pt-4 pb-3 active:bg-gray-50 transition-colors rounded-2xl"
       >
         <div className="flex items-start justify-between gap-3">
           {/* 왼쪽: 이름 + 정보 */}
@@ -83,7 +138,6 @@ function TargetCard({
               )}
             </div>
 
-            <p className="mt-2 text-[11px] text-amber-700 truncate">다음: {nextAction}</p>
           </div>
 
           {/* 오른쪽: 화살표 */}
@@ -94,6 +148,29 @@ function TargetCard({
           </div>
         </div>
       </Link>
+      <div className="px-4 pb-4">
+        <div className="grid grid-cols-3 gap-2">
+          <Link
+            href={tabHref(target.id, "prayer")}
+            className="py-2 rounded-xl border border-blue-100 bg-blue-50 text-blue-700 text-xs font-semibold text-center active:brightness-95"
+          >
+            기도문
+          </Link>
+          <Link
+            href={tabHref(target.id, "strategy")}
+            className="py-2 rounded-xl border border-amber-100 bg-amber-50 text-amber-700 text-xs font-semibold text-center active:brightness-95"
+          >
+            전략
+          </Link>
+          <Link
+            href={tabHref(target.id, "invite")}
+            className="py-2 rounded-xl border border-purple-100 bg-purple-50 text-purple-700 text-xs font-semibold text-center active:brightness-95"
+          >
+            초대
+          </Link>
+        </div>
+        <p className="mt-2 text-[11px] text-amber-700 truncate">다음: {nextAction}</p>
+      </div>
     </div>
   );
 }
@@ -299,6 +376,7 @@ export default function TargetsPage() {
   }, [recentlyDeleted]);
 
   const todayStr = new Date().toISOString().split("T")[0];
+  const firstTargetId = targets[0]?.id;
   const missionTarget = targets.find((t) => !t.prayerDates.includes(todayStr)) || targets[0];
   const missionText = fixParticles(
     missionTarget
@@ -343,6 +421,10 @@ export default function TargetsPage() {
           )}
         </div>
       </div>
+
+      {!showForm && (
+        <QuickFeatureHub firstTargetId={firstTargetId} />
+      )}
 
       {!showForm && (
         <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-2xl px-4 py-3">

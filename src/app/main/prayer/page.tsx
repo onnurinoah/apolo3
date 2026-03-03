@@ -96,23 +96,19 @@ export default function PrayerPage() {
           <label className="block text-xs font-semibold text-gray-500 mb-1.5">
             관계
           </label>
-          <div className="flex flex-wrap gap-2">
+          <select
+            value={form.relationship}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, relationship: e.target.value as PrayerRelationship }))
+            }
+            className="w-full px-4 py-3 bg-gray-50 rounded-2xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-apolo-yellow transition-shadow"
+          >
             {RELATIONSHIP_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() =>
-                  setForm((f) => ({ ...f, relationship: opt.value }))
-                }
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  form.relationship === opt.value
-                    ? "bg-apolo-yellow text-gray-900"
-                    : "bg-gray-100 text-gray-500"
-                }`}
-              >
+              <option key={opt.value} value={opt.value}>
                 {opt.label}
-              </button>
+              </option>
             ))}
-          </div>
+          </select>
         </div>
 
         <div>

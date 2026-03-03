@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useTargets, getPrayStreak } from "@/hooks/useTargets";
 import { useEvangelism } from "@/hooks/useEvangelism";
 import { useInvitation } from "@/hooks/useInvitation";
@@ -463,6 +463,7 @@ function StatusBadge({ status }: { status: TargetStatus }) {
 export default function TargetDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params.id as string;
   const { targets, loaded, prayToday, hasPrayedToday, updateStatus, removeTarget, updateTarget } = useTargets();
   const evangelism = useEvangelism();
@@ -488,6 +489,18 @@ export default function TargetDetailPage() {
   const [inviteLength, setInviteLength] = useState<ContentLength>("medium");
 
   const target = targets.find((t) => t.id === id);
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "prayer" || tabParam === "strategy" || tabParam === "invite") {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  const changeTab = (tab: TabId) => {
+    setActiveTab(tab);
+    router.replace(`/main/targets/${id}?tab=${tab}`, { scroll: false });
+  };
 
   // 전도전략 생성
   const handleStrategy = () => {
@@ -737,29 +750,29 @@ export default function TargetDetailPage() {
         </div>
       )}
 
-      {/* ─── 상태 진행바 ─────────────────────────────────── */}
+      {/* ─── 상태 진행 ─────────────────────────────────── */}
       <div className="px-4 py-3">
-        <div className="flex items-center gap-1">
-          {STATUS_ORDER.map((s, i) => {
-            const cfg = STATUS_CONFIG[s];
-            const isCurrent = target.status === s;
-            const isPast = i < currentStatusIdx;
-            return (
-              <button
-                key={s}
-                onClick={() => updateStatus(id, s)}
-                className={`flex-1 py-2 rounded-xl text-[11px] font-semibold text-center transition-all ${
-                  isCurrent
-                    ? "bg-apolo-yellow text-gray-900 shadow-sm"
-                    : isPast
-                    ? "bg-apolo-yellow-light text-amber-700"
-                    : "bg-gray-50 text-gray-400"
-                }`}
-              >
-                {cfg.label}
-              </button>
-            );
-          })}
+        <div className="bg-white rounded-2xl border border-gray-100 px-3 py-3">
+          <p className="text-[11px] font-semibold text-gray-500 mb-1.5">진행 상태</p>
+          <select
+            value={target.status}
+            onChange={(e) => updateStatus(id, e.target.value as TargetStatus)}
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
+          >
+            {STATUS_ORDER.map((status) => (
+              <option key={status} value={status}>
+                {STATUS_CONFIG[status].label}
+              </option>
+            ))}
+          </select>
+          <div className="mt-2.5 h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-apolo-yellow transition-all"
+              style={{
+                width: `${((currentStatusIdx + 1) / STATUS_ORDER.length) * 100}%`,
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -785,13 +798,13 @@ export default function TargetDetailPage() {
           {(
             [
               { id: "prayer" as TabId, top: "기도문", bottom: "받기" },
-              { id: "strategy" as TabId, top: "전도", bottom: "컨설팅" },
+              { id: "strategy" as TabId, top: "대화", bottom: "전략" },
               { id: "invite" as TabId, top: "초대", bottom: "메시지" },
             ] as const
           ).map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => changeTab(tab.id)}
               className={`min-h-[56px] px-2 rounded-2xl border font-bold leading-snug transition-all flex flex-col items-center justify-center ${
                 activeTab === tab.id
                   ? tab.id === "prayer"
@@ -812,7 +825,7 @@ export default function TargetDetailPage() {
       {/* ─── 탭 콘텐츠 ──────────────────────────────────── */}
       <div className="px-4 py-4 flex-1">
         {activeTab === "prayer" && (
-          <div className="space-y-3">
+          <div className="space-y-3 animate-tab-slide">
             {/* 기도 성장 위젯 */}
             <PrayerGrowthWidget streak={streak} />
 
@@ -861,7 +874,7 @@ export default function TargetDetailPage() {
         )}
 
         {activeTab === "strategy" && (
-          <div className="space-y-3">
+          <div className="space-y-3 animate-tab-slide">
             {/* 다음 단계 추천 */}
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl px-4 py-3">
               <p className="text-xs font-bold text-amber-800 mb-1.5">다음 단계 추천</p>
@@ -882,7 +895,7 @@ export default function TargetDetailPage() {
                 onClick={handleStrategy}
                 className="w-full py-3 rounded-2xl bg-amber-500 text-white font-bold text-sm active:bg-amber-600 transition-colors"
               >
-                전도 컨설팅 받기
+                대화 전략 받기
               </button>
             )}
             <StrategyResultArea
@@ -894,7 +907,7 @@ export default function TargetDetailPage() {
         )}
 
         {activeTab === "invite" && (
-          <div className="space-y-3">
+          <div className="space-y-3 animate-tab-slide">
             <p className="text-xs text-gray-400">
               카카오톡으로 보내기 좋은 초대 메시지를 만들어 드립니다.
             </p>

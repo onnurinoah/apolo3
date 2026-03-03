@@ -41,7 +41,7 @@ const tabs = [
   },
   {
     href: "/main/apologetics",
-    label: "변증답변",
+    label: "질문답변",
     icon: (active: boolean) => (
       <svg
         width="24"
@@ -67,7 +67,7 @@ const tabs = [
   },
   {
     href: "/main/community",
-    label: "기도나눔",
+    label: "함께기도",
     icon: (active: boolean) => (
       <svg
         width="24"
