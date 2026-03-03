@@ -25,6 +25,7 @@ import RefreshButton from "@/components/ui/RefreshButton";
 type TabId = "prayer" | "strategy" | "invite";
 type ContentLength = "short" | "medium" | "long";
 const TAB_ORDER: TabId[] = ["prayer", "strategy", "invite"];
+const SWIPE_HINT_KEY = "apolo_swipe_tab_hint_seen";
 
 const STATUS_ORDER: TargetStatus[] = ["praying", "approaching", "invited", "attending", "decided"];
 
@@ -204,13 +205,11 @@ function PrayerGrowthWidget({ streak }: { streak: number }) {
       <p className="mt-2 text-base font-bold text-gray-900">
         {safeStreak === 0 ? "연속 기도 0일" : `연속 기도 ${safeStreak}일`}
       </p>
-      <p className="mt-0.5 text-sm text-amber-700">
-        {safeStreak === 0
-          ? "오늘 첫 기록을 남겨보세요"
-          : nextIn === null
-          ? "최종 단계 도달"
-          : `다음 단계까지 ${nextIn}일`}
-      </p>
+      {safeStreak > 0 && (
+        <p className="mt-0.5 text-sm text-amber-700">
+          {nextIn === null ? "최종 단계 도달" : `다음 단계까지 ${nextIn}일`}
+        </p>
+      )}
       <div className="mt-2.5 grid grid-cols-5 gap-1.5">
         {Array.from({ length: GROWTH_STAGE_TOTAL }, (_, idx) => {
           const active = stageIndex >= idx;
@@ -461,6 +460,7 @@ export default function TargetDetailPage() {
   const [inviteEvent, setInviteEvent] = useState("주일예배");
   const [inviteLocation, setInviteLocation] = useState("");
   const [inviteLength, setInviteLength] = useState<ContentLength>("medium");
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
 
@@ -473,8 +473,27 @@ export default function TargetDetailPage() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    let timer: number | null = null;
+    try {
+      const seen = localStorage.getItem(SWIPE_HINT_KEY) === "1";
+      if (!seen) {
+        setShowSwipeHint(true);
+        localStorage.setItem(SWIPE_HINT_KEY, "1");
+        timer = window.setTimeout(() => setShowSwipeHint(false), 3600);
+      }
+    } catch {
+      setShowSwipeHint(false);
+    }
+
+    return () => {
+      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, []);
+
   const changeTab = (tab: TabId) => {
     setActiveTab(tab);
+    setShowSwipeHint(false);
     router.replace(`/main/targets/${id}?tab=${tab}`, { scroll: false });
   };
 
@@ -827,7 +846,9 @@ export default function TargetDetailPage() {
             </button>
           ))}
         </div>
-        <p className="mt-1.5 text-sm text-gray-400 text-center">좌우로 밀어서 탭 전환</p>
+        {showSwipeHint && (
+          <p className="mt-1.5 text-sm text-gray-400 text-center">좌우로 밀어서 탭 전환</p>
+        )}
       </div>
 
       {/* ─── 탭 콘텐츠 ──────────────────────────────────── */}

@@ -127,7 +127,7 @@ export default function Header() {
             </button>
             <button
               onClick={replayIntro}
-              className="h-8 px-2.5 rounded-full border border-gray-200 text-gray-700 flex items-center gap-1.5 whitespace-nowrap active:bg-gray-50"
+              className="h-8 w-8 rounded-full border border-gray-200 text-gray-700 inline-flex items-center justify-center active:bg-gray-50"
               aria-label="인트로 다시 보기"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -135,7 +135,6 @@ export default function Header() {
                 <path d="M9.75 9.2C9.75 8.03 10.72 7 12.1 7C13.33 7 14.25 7.82 14.25 8.9C14.25 10.45 12.75 10.8 12.2 11.6C11.92 12 11.9 12.25 11.9 12.75" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                 <circle cx="12" cy="16.2" r="1" fill="currentColor" />
               </svg>
-              <span className="text-xs font-semibold">인트로</span>
             </button>
           </div>
         </div>

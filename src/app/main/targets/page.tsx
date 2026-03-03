@@ -32,8 +32,10 @@ function StatusBadge({ status }: { status: EvangelismTarget["status"] }) {
 // ─── 대상자 카드 ─────────────────────────────────────────────
 function TargetCard({
   target,
+  onIntercede,
 }: {
   target: EvangelismTarget;
+  onIntercede: (target: EvangelismTarget) => void;
 }) {
   const rel = RELATIONSHIP_CONFIG[target.relationship];
 
@@ -49,12 +51,20 @@ function TargetCard({
           </div>
           <p className="mt-1 text-sm text-gray-500">{rel.label}</p>
         </div>
-        <Link
-          href={`/main/targets/${target.id}`}
-          className="shrink-0 inline-flex items-center justify-center rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 px-3.5 py-2 text-sm font-semibold text-amber-900 active:brightness-95"
-        >
-          더보기
-        </Link>
+        <div className="shrink-0 flex items-center gap-2">
+          <button
+            onClick={() => onIntercede(target)}
+            className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 whitespace-nowrap active:bg-amber-100"
+          >
+            중보했어요
+          </button>
+          <Link
+            href={`/main/targets/${target.id}`}
+            className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 px-3.5 py-2 text-sm font-semibold text-amber-900 whitespace-nowrap active:brightness-95"
+          >
+            더보기
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -260,6 +270,7 @@ export default function TargetsPage() {
     eventDate: null,
   });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -297,6 +308,12 @@ export default function TargetsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = window.setTimeout(() => setToastMessage(""), 1800);
+    return () => window.clearTimeout(timer);
+  }, [toastMessage]);
+
   const todayStr = new Date().toISOString().split("T")[0];
   const missionTarget = targets.find((t) => !t.prayerDates.includes(todayStr)) || targets[0];
   const missionText = missionTarget
@@ -311,13 +328,17 @@ export default function TargetsPage() {
     },
     [addTarget]
   );
+  const handleIntercede = useCallback((_target: EvangelismTarget) => {
+    setToastMessage("오늘 중보기도가 쌓였습니다.");
+  }, []);
+  const hasGatheringNotice = gatheringConfig.isOpen && Boolean(gatheringConfig.eventName);
 
   if (showOnboarding) return <Onboarding onDone={onboardingDone} />;
   if (!loaded) return null;
 
   return (
     <div className="px-4 py-4 space-y-4">
-      {gatheringConfig.isOpen && gatheringConfig.eventName && (
+      {hasGatheringNotice && (
         <div className="bg-amber-200 border border-amber-400 rounded-2xl px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
           <div className="min-w-0">
             <p className="text-sm font-extrabold text-amber-950">
@@ -360,9 +381,19 @@ export default function TargetsPage() {
       </div>
 
       {!showForm && (
-        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 rounded-2xl px-4 py-3">
-          <p className="text-sm font-semibold text-amber-700">오늘의 한 걸음</p>
-          <p className="text-base font-bold text-amber-900 mt-0.5">{missionText}</p>
+        <div
+          className={`rounded-2xl border px-4 py-3 ${
+            hasGatheringNotice
+              ? "bg-amber-50 border-amber-100"
+              : "bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-100"
+          }`}
+        >
+          <p className={`text-sm font-semibold ${hasGatheringNotice ? "text-amber-600" : "text-amber-700"}`}>
+            오늘의 한 걸음
+          </p>
+          <p className={`text-base font-bold mt-0.5 ${hasGatheringNotice ? "text-amber-800" : "text-amber-900"}`}>
+            {missionText}
+          </p>
         </div>
       )}
 
@@ -377,7 +408,7 @@ export default function TargetsPage() {
       ) : (
         <div className="space-y-3">
           {targets.map((target) => (
-            <TargetCard key={target.id} target={target} />
+            <TargetCard key={target.id} target={target} onIntercede={handleIntercede} />
           ))}
         </div>
       )}
@@ -394,6 +425,11 @@ export default function TargetsPage() {
             <path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2.7" strokeLinecap="round" />
           </svg>
         </button>
+      )}
+      {toastMessage && (
+        <div className="fixed bottom-[102px] left-1/2 z-50 -translate-x-1/2 rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-lg">
+          {toastMessage}
+        </div>
       )}
 
     </div>
