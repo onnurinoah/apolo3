@@ -1,10 +1,18 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useTargets } from "@/hooks/useTargets";
 import { josa } from "@/lib/korean";
 import Onboarding, { useOnboarding } from "@/components/Onboarding";
+import { createClient } from "@/lib/supabase/client";
+import {
+  getLocalDateKey,
+  INTERCEDE_COUNT_KEY,
+  incrementTargetIntercedeTotal,
+  readDailyInterceded,
+  writeDailyInterceded,
+} from "@/lib/intercede";
 import {
   EvangelismTarget,
   TargetRelationship,
@@ -33,14 +41,16 @@ function StatusBadge({ status }: { status: EvangelismTarget["status"] }) {
 function TargetCard({
   target,
   onIntercede,
+  intercededToday,
 }: {
   target: EvangelismTarget;
-  onIntercede: (target: EvangelismTarget) => void;
+  onIntercede: (target: EvangelismTarget, alreadyInterceded: boolean) => void;
+  intercededToday: boolean;
 }) {
   const rel = RELATIONSHIP_CONFIG[target.relationship];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-4">
+    <div className="bg-white px-1 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 min-w-0">
@@ -53,14 +63,18 @@ function TargetCard({
         </div>
         <div className="shrink-0 flex items-center gap-2">
           <button
-            onClick={() => onIntercede(target)}
-            className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 whitespace-nowrap active:bg-amber-100"
+            onClick={() => onIntercede(target, intercededToday)}
+            className={`inline-flex items-center justify-center rounded-xl px-2.5 py-2 text-xs font-bold whitespace-nowrap transition-colors ${
+              intercededToday
+                ? "border border-amber-400 bg-amber-300 text-amber-950"
+                : "border border-amber-200 bg-amber-50 text-amber-900 active:bg-amber-100"
+            }`}
           >
-            중보했어요
+            🙏 중보
           </button>
           <Link
             href={`/main/targets/${target.id}`}
-            className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 px-3.5 py-2 text-sm font-semibold text-amber-900 whitespace-nowrap active:brightness-95"
+            className="inline-flex items-center justify-center rounded-xl border border-amber-200 bg-yellow-50 px-3.5 py-2 text-sm font-semibold text-amber-900 whitespace-nowrap active:brightness-95"
           >
             더보기
           </Link>
@@ -115,7 +129,7 @@ function AddTargetForm({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5 space-y-4 animate-fade-in-up">
+    <div className="bg-white px-1 py-1 space-y-4 animate-fade-in-up">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-bold text-gray-900">전도 대상자 등록</h3>
         <button onClick={onClose} className="text-gray-400 text-sm">닫기</button>
@@ -261,6 +275,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 export default function TargetsPage() {
   const { targets, loaded, addTarget } = useTargets();
   const { show: showOnboarding, done: onboardingDone } = useOnboarding();
+  const supabase = useMemo(() => createClient(), []);
   const [showForm, setShowForm] = useState(false);
   const [globalTargetCount, setGlobalTargetCount] = useState<number | null>(null);
   const [isGlobalTargetCount, setIsGlobalTargetCount] = useState(false);
@@ -271,6 +286,7 @@ export default function TargetsPage() {
   });
   const [isAdmin, setIsAdmin] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [intercededTodayIds, setIntercededTodayIds] = useState<string[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -314,13 +330,17 @@ export default function TargetsPage() {
     return () => window.clearTimeout(timer);
   }, [toastMessage]);
 
-  const todayStr = new Date().toISOString().split("T")[0];
-  const missionTarget = targets.find((t) => !t.prayerDates.includes(todayStr)) || targets[0];
+  const todayStr = getLocalDateKey();
+  const missionTarget = targets.find((t) => !intercededTodayIds.includes(t.id)) || targets[0];
   const missionText = missionTarget
-    ? !missionTarget.prayerDates.includes(todayStr)
-      ? `${missionTarget.name}${josa(missionTarget.name, "을/를")} 위해 오늘 기도 체크`
+    ? !intercededTodayIds.includes(missionTarget.id)
+      ? `${missionTarget.name}${josa(missionTarget.name, "을/를")} 위해 오늘 중보`
       : `${missionTarget.name}에게 안부 메시지 보내기`
     : "오늘 대상자 1명 등록하기";
+
+  useEffect(() => {
+    setIntercededTodayIds(readDailyInterceded(todayStr));
+  }, [todayStr]);
 
   const handleAdd = useCallback(
     (input: Omit<EvangelismTarget, "id" | "createdAt" | "prayerDates" | "status">) => {
@@ -328,9 +348,39 @@ export default function TargetsPage() {
     },
     [addTarget]
   );
-  const handleIntercede = useCallback((_target: EvangelismTarget) => {
-    setToastMessage("오늘 중보기도가 쌓였습니다.");
-  }, []);
+  const handleIntercede = useCallback(async (target: EvangelismTarget, alreadyInterceded: boolean) => {
+    setToastMessage("오늘 중보했습니다.");
+    if (alreadyInterceded) return;
+
+    const nextIds = Array.from(new Set([...intercededTodayIds, target.id]));
+    setIntercededTodayIds(nextIds);
+    writeDailyInterceded(nextIds, todayStr);
+    incrementTargetIntercedeTotal(target.id);
+
+    try {
+      const localCurrent = Number(localStorage.getItem(INTERCEDE_COUNT_KEY) || "0");
+      localStorage.setItem(INTERCEDE_COUNT_KEY, String(localCurrent + 1));
+    } catch {
+      // ignore localStorage error
+    }
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const currentMeta = user.user_metadata || {};
+      const currentCount =
+        typeof currentMeta.intercedeCount === "number"
+          ? currentMeta.intercedeCount
+          : Number(currentMeta.intercedeCount || 0);
+      await supabase.auth.updateUser({
+        data: { ...currentMeta, intercedeCount: currentCount + 1 },
+      });
+    } catch {
+      // non-critical
+    }
+  }, [intercededTodayIds, supabase, todayStr]);
   const hasGatheringNotice = gatheringConfig.isOpen && Boolean(gatheringConfig.eventName);
 
   if (showOnboarding) return <Onboarding onDone={onboardingDone} />;
@@ -397,6 +447,15 @@ export default function TargetsPage() {
         </div>
       )}
 
+      {!showForm && (
+        <button
+          onClick={() => setShowForm(true)}
+          className="w-full rounded-2xl border border-amber-200 bg-yellow-50 py-3.5 text-sm font-bold text-amber-900 active:bg-amber-100"
+        >
+          + 전도 대상자 추가
+        </button>
+      )}
+
       {/* 추가 폼 */}
       {showForm && (
         <AddTargetForm onAdd={handleAdd} onClose={() => setShowForm(false)} />
@@ -406,26 +465,19 @@ export default function TargetsPage() {
       {targets.length === 0 && !showForm ? (
         <EmptyState onAdd={() => setShowForm(true)} />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-0 bg-white rounded-2xl px-3">
           {targets.map((target) => (
-            <TargetCard key={target.id} target={target} onIntercede={handleIntercede} />
+            <TargetCard
+              key={target.id}
+              target={target}
+              onIntercede={handleIntercede}
+              intercededToday={intercededTodayIds.includes(target.id)}
+            />
           ))}
         </div>
       )}
 
       <div className="h-16" />
-
-      {!showForm && (
-        <button
-          onClick={() => setShowForm(true)}
-          className="fixed bottom-24 right-5 z-40 w-14 h-14 rounded-full bg-apolo-yellow shadow-lg flex items-center justify-center active:bg-apolo-yellow-dark"
-          aria-label="대상자 추가"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5V19M5 12H19" stroke="white" strokeWidth="2.7" strokeLinecap="round" />
-          </svg>
-        </button>
-      )}
       {toastMessage && (
         <div className="fixed bottom-[102px] left-1/2 z-50 -translate-x-1/2 rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-lg">
           {toastMessage}

@@ -2,10 +2,11 @@
 
 import { TouchEvent, useRef, useState, useEffect } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useTargets, getPrayStreak } from "@/hooks/useTargets";
+import { useTargets } from "@/hooks/useTargets";
 import { useEvangelism } from "@/hooks/useEvangelism";
 import { useInvitation } from "@/hooks/useInvitation";
 import { usePrayer } from "@/hooks/usePrayer";
+import { getTargetIntercedeTotal } from "@/lib/intercede";
 import { prayerTopics } from "@/data/prayerTopics";
 import { PrayerTopic } from "@/types/prayer";
 import {
@@ -15,7 +16,6 @@ import {
   STATUS_CONFIG,
   RELATIONSHIP_CONFIG,
   INTEREST_CONFIG,
-  NEXT_ACTIONS,
 } from "@/types/target";
 import LoadingDots from "@/components/ui/LoadingDots";
 import CopyButton from "@/components/ui/CopyButton";
@@ -25,7 +25,6 @@ import RefreshButton from "@/components/ui/RefreshButton";
 type TabId = "prayer" | "strategy" | "invite";
 type ContentLength = "short" | "medium" | "long";
 const TAB_ORDER: TabId[] = ["prayer", "strategy", "invite"];
-const SWIPE_HINT_KEY = "apolo_swipe_tab_hint_seen";
 
 const STATUS_ORDER: TargetStatus[] = ["praying", "approaching", "invited", "attending", "decided"];
 
@@ -35,19 +34,29 @@ const LENGTH_OPTIONS: { id: ContentLength; label: string }[] = [
   { id: "long", label: "깊게" },
 ];
 
-const GROWTH_STAGE_TOTAL = 5;
-const GROWTH_STAGE_COLORS = ["#FFF9DB", "#FFF3BF", "#FFE066", "#FFD43B", "#FFC107"];
+function parseMemoEntries(notes?: string): string[] {
+  if (!notes) return [];
+  return notes
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
 
-type GrowthStageId = "egg" | "cracked" | "chick" | "young" | "adult";
-type GrowthStage = { id: GrowthStageId; min: number; max: number | null };
+function stripMemoStamp(line: string): string {
+  return line.replace(/^\[[^\]]+\]\s*/, "").trim();
+}
 
-const GROWTH_STAGES: GrowthStage[] = [
-  { id: "egg", min: 0, max: 2 },
-  { id: "cracked", min: 3, max: 6 },
-  { id: "chick", min: 7, max: 13 },
-  { id: "young", min: 14, max: 24 },
-  { id: "adult", min: 25, max: null },
-];
+function makeMemoStamp(): string {
+  return new Date().toLocaleString("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+type InviteSpeechStyle = "honorific" | "casual";
+
 
 // ─── 길이 선택 ──────────────────────────────────────────────
 function LengthToggle({ value, onChange }: { value: ContentLength; onChange: (v: ContentLength) => void }) {
@@ -68,159 +77,22 @@ function LengthToggle({ value, onChange }: { value: ContentLength; onChange: (v:
   );
 }
 
-function resolveGrowthStage(streak: number): GrowthStage {
-  const safeStreak = Math.max(0, streak);
-  for (const stage of GROWTH_STAGES) {
-    if (stage.max === null && safeStreak >= stage.min) return stage;
-    if (stage.max !== null && safeStreak >= stage.min && safeStreak <= stage.max) return stage;
-  }
-  return GROWTH_STAGES[0];
-}
-
-function daysUntilNextStage(stage: GrowthStage, streak: number): number | null {
-  if (stage.max === null) return null;
-  return Math.max(1, stage.max - Math.max(0, streak) + 1);
-}
-
-function GrowthCharacter({ stage }: { stage: GrowthStage }) {
-  if (stage.id === "egg") {
-    return (
-      <svg width="92" height="92" viewBox="0 0 92 92" fill="none">
-        <ellipse cx="46" cy="80" rx="21" ry="5" fill="#FFE8A1" opacity="0.55" />
-        <ellipse cx="46" cy="47" rx="24" ry="31" fill="#FFF9E6" />
-        <ellipse cx="46" cy="47" rx="24" ry="31" fill="url(#eggGrad)" />
-        <ellipse cx="46" cy="47" rx="24" ry="31" stroke="#FACC15" strokeWidth="2.4" />
-        <ellipse cx="38" cy="34" rx="9" ry="5.6" fill="white" opacity="0.58" />
-        <defs>
-          <linearGradient id="eggGrad" x1="30" y1="20" x2="56" y2="76" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#FFFDF5" />
-            <stop offset="0.58" stopColor="#FFF3BF" />
-            <stop offset="1" stopColor="#FFE066" />
-          </linearGradient>
-        </defs>
-      </svg>
-    );
-  }
-
-  if (stage.id === "cracked") {
-    return (
-      <svg width="92" height="92" viewBox="0 0 92 92" fill="none">
-        <ellipse cx="46" cy="80" rx="21" ry="5" fill="#FFE8A1" opacity="0.55" />
-        <ellipse cx="46" cy="47" rx="24" ry="31" fill="url(#crackGrad)" />
-        <ellipse cx="46" cy="47" rx="24" ry="31" stroke="#F4B400" strokeWidth="2.4" />
-        <path d="M42 24L49 33L43 40L51 47L45 55" stroke="#EAA600" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="58" cy="29" r="2.4" fill="#FFE066" />
-        <circle cx="34" cy="27" r="1.9" fill="#FFF1A8" />
-        <defs>
-          <linearGradient id="crackGrad" x1="28" y1="19" x2="60" y2="77" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#FFFDF4" />
-            <stop offset="0.6" stopColor="#FFE893" />
-            <stop offset="1" stopColor="#FFD43B" />
-          </linearGradient>
-        </defs>
-      </svg>
-    );
-  }
-
-  if (stage.id === "chick") {
-    return (
-      <svg width="92" height="92" viewBox="0 0 92 92" fill="none">
-        <ellipse cx="46" cy="80" rx="21" ry="5" fill="#FFE8A1" opacity="0.55" />
-        <circle cx="46" cy="50" r="21" fill="url(#chickGrad)" />
-        <ellipse cx="54" cy="54" rx="7.8" ry="5.6" fill="#FFF3BF" opacity="0.72" />
-        <circle cx="38.5" cy="45" r="2.25" fill="#374151" />
-        <circle cx="39.2" cy="44.2" r="0.72" fill="white" />
-        <path d="M55.5 48L67 52L55.5 56V48Z" fill="#F59F00" />
-        <path d="M35.5 70L39.5 63M47.5 70L51.5 63" stroke="#F59F00" strokeWidth="2.4" strokeLinecap="round" />
-        <defs>
-          <linearGradient id="chickGrad" x1="31" y1="31" x2="59" y2="71" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#FFF7CF" />
-            <stop offset="0.6" stopColor="#FFE066" />
-            <stop offset="1" stopColor="#FFD43B" />
-          </linearGradient>
-        </defs>
-      </svg>
-    );
-  }
-
-  if (stage.id === "young") {
-    return (
-      <svg width="92" height="92" viewBox="0 0 92 92" fill="none">
-        <ellipse cx="46" cy="80" rx="22" ry="5" fill="#FFE8A1" opacity="0.55" />
-        <ellipse cx="41" cy="55" rx="23" ry="16" fill="url(#youngBody)" />
-        <circle cx="58" cy="41" r="11.5" fill="#FFD43B" />
-        <ellipse cx="31.5" cy="55" rx="8.8" ry="5.9" fill="#FFF3BF" opacity="0.76" />
-        <circle cx="55.2" cy="39.6" r="2.2" fill="#374151" />
-        <circle cx="56" cy="38.9" r="0.72" fill="white" />
-        <path d="M65.5 41L77 45L65.5 48.8V41Z" fill="#F59F00" />
-        <path d="M34 72L38.4 64M48.3 72L52.7 64" stroke="#EA9B00" strokeWidth="2.5" strokeLinecap="round" />
-        <defs>
-          <linearGradient id="youngBody" x1="21" y1="41" x2="59" y2="70" gradientUnits="userSpaceOnUse">
-            <stop stopColor="#FFF5C2" />
-            <stop offset="0.62" stopColor="#FFD43B" />
-            <stop offset="1" stopColor="#FFBF00" />
-          </linearGradient>
-        </defs>
-      </svg>
-    );
-  }
+// ─── 누적 중보 위젯 ───────────────────────────────────────
+function IntercedeTotalWidget({ count }: { count: number }) {
+  const safeCount = Math.max(0, count);
+  const progress = Math.min(100, Math.round((safeCount / 50) * 100));
 
   return (
-    <svg width="92" height="92" viewBox="0 0 92 92" fill="none">
-      <ellipse cx="46" cy="80" rx="23" ry="5.2" fill="#FFE8A1" opacity="0.55" />
-      <ellipse cx="39.5" cy="56" rx="24" ry="16.5" fill="url(#adultBody)" />
-      <circle cx="59" cy="40" r="12.5" fill="#FFC107" />
-      <ellipse cx="29" cy="56" rx="9.4" ry="6.3" fill="#FFF3BF" opacity="0.84" />
-      <path d="M64 28C61.5 24 58.2 23.3 55.9 26.1C55 23.7 53.2 23.3 51 25.2C49.7 26.2 49.6 28.3 50.4 30.7H64V28Z" fill="#FFE066" />
-      <circle cx="55.8" cy="38.6" r="2.3" fill="#374151" />
-      <circle cx="56.6" cy="37.8" r="0.75" fill="white" />
-      <path d="M66.5 40L79 44L66.5 48V40Z" fill="#F59F00" />
-      <path d="M32 72L36.6 64M47.2 72L51.8 64" stroke="#E99A00" strokeWidth="2.6" strokeLinecap="round" />
-      <path d="M17.2 56L11 51L16 58.2" stroke="#E99A00" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" />
-      <defs>
-        <linearGradient id="adultBody" x1="18" y1="41" x2="61" y2="72" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#FFF3BF" />
-          <stop offset="0.58" stopColor="#FFD43B" />
-          <stop offset="1" stopColor="#FFB800" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
-
-// ─── 기도 성장 위젯 ───────────────────────────────────────
-function PrayerGrowthWidget({ streak }: { streak: number }) {
-  const safeStreak = Math.max(0, streak);
-  const stage = resolveGrowthStage(safeStreak);
-  const stageIndex = GROWTH_STAGES.findIndex((s) => s.id === stage.id);
-  const nextIn = daysUntilNextStage(stage, safeStreak);
-
-  return (
-    <div className="bg-white border border-amber-200 rounded-2xl px-4 py-4 text-center">
-      <div className="mt-1 flex justify-center">
-        <div className="scale-[1.08] origin-center">
-          <GrowthCharacter stage={stage} />
-        </div>
+    <div className="rounded-xl bg-amber-50 px-3.5 py-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-amber-800">누적 중보</p>
+        <p className="text-sm font-bold text-amber-900">{safeCount}회</p>
       </div>
-      <p className="mt-2 text-base font-bold text-gray-900">
-        {safeStreak === 0 ? "연속 기도 0일" : `연속 기도 ${safeStreak}일`}
-      </p>
-      {safeStreak > 0 && (
-        <p className="mt-0.5 text-sm text-amber-700">
-          {nextIn === null ? "최종 단계 도달" : `다음 단계까지 ${nextIn}일`}
-        </p>
-      )}
-      <div className="mt-2.5 grid grid-cols-5 gap-1.5">
-        {Array.from({ length: GROWTH_STAGE_TOTAL }, (_, idx) => {
-          const active = stageIndex >= idx;
-          return (
-            <div
-              key={idx}
-              className={`h-1.5 rounded-full ${active ? "" : "bg-gray-100"}`}
-              style={active ? { backgroundColor: GROWTH_STAGE_COLORS[idx] } : undefined}
-            />
-          );
-        })}
+      <div className="mt-2 h-1.5 w-full rounded-full bg-amber-100 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-apolo-yellow transition-all"
+          style={{ width: `${progress}%` }}
+        />
       </div>
     </div>
   );
@@ -438,7 +310,7 @@ export default function TargetDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = params.id as string;
-  const { targets, loaded, prayToday, hasPrayedToday, updateStatus, removeTarget, updateTarget } = useTargets();
+  const { targets, loaded, updateStatus, removeTarget, updateTarget } = useTargets();
   const evangelism = useEvangelism();
   const invitation = useInvitation();
   const prayer = usePrayer();
@@ -451,6 +323,7 @@ export default function TargetDetailPage() {
   const [editSituation, setEditSituation] = useState("");
   const [editInterest, setEditInterest] = useState<TargetInterest>("neutral");
   const [editNotes, setEditNotes] = useState("");
+  const [memoInput, setMemoInput] = useState("");
 
   // Prayer options
   const [prayerTopic, setPrayerTopic] = useState<PrayerTopic>("salvation");
@@ -458,9 +331,11 @@ export default function TargetDetailPage() {
 
   // Invite options
   const [inviteEvent, setInviteEvent] = useState("주일예배");
-  const [inviteLocation, setInviteLocation] = useState("");
+  const [inviteAddressee, setInviteAddressee] = useState("");
+  const [inviteSpeechStyle, setInviteSpeechStyle] = useState<InviteSpeechStyle>("honorific");
+  const [inviteChatStyleSample, setInviteChatStyleSample] = useState("");
   const [inviteLength, setInviteLength] = useState<ContentLength>("medium");
-  const [showSwipeHint, setShowSwipeHint] = useState(false);
+  const [intercedeTotal, setIntercedeTotal] = useState(0);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
 
@@ -474,26 +349,14 @@ export default function TargetDetailPage() {
   }, [searchParams]);
 
   useEffect(() => {
-    let timer: number | null = null;
-    try {
-      const seen = localStorage.getItem(SWIPE_HINT_KEY) === "1";
-      if (!seen) {
-        setShowSwipeHint(true);
-        localStorage.setItem(SWIPE_HINT_KEY, "1");
-        timer = window.setTimeout(() => setShowSwipeHint(false), 3600);
-      }
-    } catch {
-      setShowSwipeHint(false);
-    }
-
-    return () => {
-      if (timer !== null) window.clearTimeout(timer);
-    };
-  }, []);
+    if (!target) return;
+    setMemoInput("");
+    setInviteAddressee(target.name);
+    setIntercedeTotal(getTargetIntercedeTotal(target.id));
+  }, [target]);
 
   const changeTab = (tab: TabId) => {
     setActiveTab(tab);
-    setShowSwipeHint(false);
     router.replace(`/main/targets/${id}?tab=${tab}`, { scroll: false });
   };
 
@@ -528,6 +391,13 @@ export default function TargetDetailPage() {
     moveTabBySwipe(deltaX < 0 ? "next" : "prev");
   };
 
+  const memoEntries = parseMemoEntries(target?.notes);
+  const memoContext = memoEntries
+    .slice(0, 3)
+    .map(stripMemoStamp)
+    .filter(Boolean)
+    .join(" · ");
+
   // 전도전략 생성
   const handleStrategy = () => {
     if (!target) return;
@@ -556,9 +426,12 @@ export default function TargetDetailPage() {
     invitation.generate({
       personName: target.name,
       relationship: target.relationship,
+      status: target.status,
       eventType: inviteEvent,
-      location: inviteLocation,
-      additionalContext: `${target.situation}. ${target.notes || ""}`,
+      addressee: inviteAddressee.trim() || target.name,
+      speechStyle: inviteSpeechStyle,
+      chatStyleSample: inviteChatStyleSample.trim(),
+      additionalContext: `${target.situation}. ${memoContext || target.notes || ""}`,
       length: inviteLength,
     });
   };
@@ -567,15 +440,18 @@ export default function TargetDetailPage() {
     invitation.regenerate({
       personName: target.name,
       relationship: target.relationship,
+      status: target.status,
       eventType: inviteEvent,
-      location: inviteLocation,
-      additionalContext: `${target.situation}. ${target.notes || ""}`,
+      addressee: inviteAddressee.trim() || target.name,
+      speechStyle: inviteSpeechStyle,
+      chatStyleSample: inviteChatStyleSample.trim(),
+      additionalContext: `${target.situation}. ${memoContext || target.notes || ""}`,
       length: inviteLength,
     });
   };
 
   // 기도문 생성
-  const prayerContextText = (target?.notes || "").trim() || (target?.situation || "").trim();
+  const prayerContextText = memoContext || (target?.situation || "").trim();
 
   const handlePrayer = () => {
     if (!target) return;
@@ -583,6 +459,7 @@ export default function TargetDetailPage() {
       personName: target.name,
       relationship: target.relationship,
       topic: prayerTopic,
+      status: target.status,
       additionalContext: prayerContextText,
       length: prayerLength,
     });
@@ -593,6 +470,7 @@ export default function TargetDetailPage() {
       personName: target.name,
       relationship: target.relationship,
       topic: prayerTopic,
+      status: target.status,
       additionalContext: prayerContextText,
       length: prayerLength,
     });
@@ -610,8 +488,6 @@ export default function TargetDetailPage() {
     );
   }
 
-  const streak = getPrayStreak(target);
-  const prayed = hasPrayedToday(id);
   const rel = RELATIONSHIP_CONFIG[target.relationship];
   const interestCfg = INTEREST_CONFIG[target.interest];
   const currentStatusIdx = STATUS_ORDER.indexOf(target.status);
@@ -640,6 +516,24 @@ export default function TargetDetailPage() {
       notes: editNotes.trim() || undefined,
     });
     setIsEditing(false);
+  };
+
+  const saveQuickMemo = () => {
+    const text = memoInput.trim();
+    if (!text) return;
+    const stamped = `[${makeMemoStamp()}] ${text}`;
+    const nextNotes = [stamped, ...memoEntries].slice(0, 60).join("\n");
+    updateTarget(id, {
+      notes: nextNotes,
+    });
+    setMemoInput("");
+  };
+
+  const removeMemoEntry = (index: number) => {
+    const next = memoEntries.filter((_, idx) => idx !== index);
+    updateTarget(id, {
+      notes: next.length > 0 ? next.join("\n") : undefined,
+    });
   };
 
   return (
@@ -777,22 +671,26 @@ export default function TargetDetailPage() {
         </div>
       )}
 
-      {/* ─── 상태 진행 ─────────────────────────────────── */}
-      <div className="px-4 py-3">
-        <div className="bg-white rounded-2xl border border-gray-100 px-3 py-3">
-          <p className="text-sm font-semibold text-gray-500 mb-1.5">진행 상태</p>
-          <select
-            value={target.status}
-            onChange={(e) => updateStatus(id, e.target.value as TargetStatus)}
-            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
-          >
+      <div className="px-4 pt-3 pb-2">
+        <div className="rounded-2xl bg-gray-50 px-3 py-3 space-y-2.5">
+          <div className="relative grid grid-cols-5 gap-0 rounded-xl bg-white border border-gray-200 p-1">
+            <div
+              className="absolute top-1 bottom-1 w-[calc((100%_-_0.5rem)_/_5)] rounded-lg bg-apolo-yellow transition-transform duration-200"
+              style={{ transform: `translateX(${Math.max(0, currentStatusIdx) * 100}%)` }}
+            />
             {STATUS_ORDER.map((status) => (
-              <option key={status} value={status}>
+              <button
+                key={status}
+                onClick={() => updateStatus(id, status)}
+                className={`relative z-10 min-h-[38px] px-1 text-[11px] font-bold rounded-lg transition-colors whitespace-nowrap ${
+                  target.status === status ? "text-gray-900" : "text-gray-500"
+                }`}
+              >
                 {STATUS_CONFIG[status].label}
-              </option>
+              </button>
             ))}
-          </select>
-          <div className="mt-2.5 h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-white overflow-hidden">
             <div
               className="h-full rounded-full bg-apolo-yellow transition-all"
               style={{
@@ -803,22 +701,7 @@ export default function TargetDetailPage() {
         </div>
       </div>
 
-      {/* ─── 기도 버튼 + 스트릭 ─────────────────────────── */}
-      <div className="px-4 pb-3">
-        <button
-          onClick={() => { prayToday(id); }}
-          disabled={prayed}
-          className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all ${
-            prayed
-              ? "bg-green-50 text-green-600 border border-green-200"
-              : "bg-apolo-yellow text-gray-900 active:bg-apolo-yellow-dark shadow-sm"
-          }`}
-        >
-          {prayed ? "오늘 기도 완료" : "오늘 기도했어요"}
-        </button>
-      </div>
-
-      {/* ─── 하단 탭: 기도문 받기 | 전도 컨설팅 | 초대메시지 생성 ───── */}
+      {/* ─── 하단 탭: 기도문생성 | 맞춤전략 | 초대메시지 ───── */}
       <div className="px-4 pt-1">
         <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mb-3" />
         <div className="relative grid grid-cols-3 gap-0 rounded-2xl bg-amber-50/40 p-1 border border-amber-100">
@@ -828,8 +711,8 @@ export default function TargetDetailPage() {
           />
           {(
             [
-              { id: "prayer" as TabId, label: "기도문받기" },
-              { id: "strategy" as TabId, label: "대화전략" },
+              { id: "prayer" as TabId, label: "기도문생성" },
+              { id: "strategy" as TabId, label: "맞춤전략" },
               { id: "invite" as TabId, label: "초대메시지" },
             ] as const
           ).map((tab) => (
@@ -846,9 +729,6 @@ export default function TargetDetailPage() {
             </button>
           ))}
         </div>
-        {showSwipeHint && (
-          <p className="mt-1.5 text-sm text-gray-400 text-center">좌우로 밀어서 탭 전환</p>
-        )}
       </div>
 
       {/* ─── 탭 콘텐츠 ──────────────────────────────────── */}
@@ -859,12 +739,7 @@ export default function TargetDetailPage() {
       >
         {activeTab === "prayer" && (
           <div className="space-y-3 animate-tab-slide">
-            {/* 기도 성장 위젯 */}
-            <PrayerGrowthWidget streak={streak} />
-
-            <p className="text-sm text-gray-400">
-              주제와 길이를 선택하면 맞춤 기도문을 만들어 드립니다.
-            </p>
+            <IntercedeTotalWidget count={intercedeTotal} />
 
             {/* 주제 선택 */}
             <div>
@@ -896,7 +771,7 @@ export default function TargetDetailPage() {
                   onClick={handlePrayer}
                   className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#FFD43B] to-[#FFC107] text-gray-900 font-extrabold text-sm active:brightness-95 transition-colors shadow-sm"
                 >
-                  기도문 받기
+                  기도문 생성
                 </button>
                 <p className="text-sm text-gray-500 text-center">생성 문구는 참고용으로 활용하세요.</p>
               </div>
@@ -911,27 +786,12 @@ export default function TargetDetailPage() {
 
         {activeTab === "strategy" && (
           <div className="space-y-3 animate-tab-slide">
-            {/* 다음 단계 추천 */}
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl px-4 py-3">
-              <p className="text-sm font-bold text-amber-800 mb-1.5">다음 단계 추천</p>
-              <div className="space-y-1">
-                {NEXT_ACTIONS[target.status].map((action, i) => (
-                  <p key={i} className="text-sm text-amber-700">
-                    {i + 1}. {action}
-                  </p>
-                ))}
-              </div>
-            </div>
-
-            <p className="text-sm text-gray-400">
-              상황에 맞는 접근 방향과 대화 예시를 드립니다.
-            </p>
             {!evangelism.actionPoints && !evangelism.isLoading && (
               <button
                 onClick={handleStrategy}
                 className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#FFE066] to-[#FFD43B] text-gray-900 font-extrabold text-sm active:brightness-95 transition-colors shadow-sm"
               >
-                대화 전략 받기
+                맞춤전략 생성
               </button>
             )}
             <StrategyResultArea
@@ -944,10 +804,6 @@ export default function TargetDetailPage() {
 
         {activeTab === "invite" && (
           <div className="space-y-3 animate-tab-slide">
-            <p className="text-sm text-gray-400">
-              카카오톡으로 보내기 좋은 초대 메시지를 만들어 드립니다.
-            </p>
-
             {/* 모임명 */}
             <div>
               <p className="text-sm font-semibold text-gray-500 mb-1.5">모임명</p>
@@ -960,15 +816,51 @@ export default function TargetDetailPage() {
               />
             </div>
 
-            {/* 장소 (선택) */}
+            {/* 호칭 */}
             <div>
-              <p className="text-sm font-semibold text-gray-500 mb-1.5">장소 <span className="font-normal text-gray-400">(선택)</span></p>
+              <p className="text-sm font-semibold text-gray-500 mb-1.5">호칭</p>
               <input
                 type="text"
-                value={inviteLocation}
-                onChange={(e) => setInviteLocation(e.target.value)}
-                placeholder="예: 온누리교회 양재캠퍼스"
+                value={inviteAddressee}
+                onChange={(e) => setInviteAddressee(e.target.value)}
+                placeholder="예: 근영아, 근영님, 엄마, 팀장님"
                 className="w-full px-4 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
+              />
+            </div>
+
+            {/* 존대 여부 */}
+            <div>
+              <p className="text-sm font-semibold text-gray-500 mb-1.5">말투</p>
+              <div className="flex bg-gray-100 rounded-lg p-0.5">
+                <button
+                  onClick={() => setInviteSpeechStyle("honorific")}
+                  className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    inviteSpeechStyle === "honorific" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"
+                  }`}
+                >
+                  존대
+                </button>
+                <button
+                  onClick={() => setInviteSpeechStyle("casual")}
+                  className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    inviteSpeechStyle === "casual" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"
+                  }`}
+                >
+                  반말
+                </button>
+              </div>
+            </div>
+
+            {/* 평소 톡 말투 */}
+            <div>
+              <p className="text-sm font-semibold text-gray-500 mb-1.5">
+                평소 카톡 말투 <span className="font-normal text-gray-400">(선택)</span>
+              </p>
+              <textarea
+                value={inviteChatStyleSample}
+                onChange={(e) => setInviteChatStyleSample(e.target.value)}
+                placeholder="예: 바쁘지? 시간 괜찮으면 같이 갈래?"
+                className="w-full min-h-[72px] px-4 py-2.5 bg-gray-50 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
               />
             </div>
 
@@ -1000,14 +892,43 @@ export default function TargetDetailPage() {
       </div>
 
       {/* 메모 */}
-      {target.notes && (
-        <div className="px-4 pb-6">
-          <div className="bg-gray-50 rounded-2xl px-4 py-3">
-            <p className="text-sm text-gray-400 mb-1">메모</p>
-            <p className="text-sm text-gray-600 leading-relaxed">{target.notes}</p>
+      <div className="px-4 pb-5">
+        <div className="bg-gray-50 rounded-2xl px-4 py-3">
+          <p className="text-sm font-semibold text-gray-600 mb-1.5">메모 (누적)</p>
+          <div className="max-h-[180px] overflow-y-auto space-y-2 rounded-xl bg-white border border-gray-200 px-3 py-2.5">
+            {memoEntries.length === 0 ? (
+              <p className="text-sm text-gray-400">아직 저장된 메모가 없습니다.</p>
+            ) : (
+              memoEntries.map((entry, idx) => (
+                <div key={`${entry}-${idx}`} className="flex items-start gap-2">
+                  <p className="flex-1 text-sm text-gray-700 leading-relaxed break-words">
+                    {entry}
+                  </p>
+                  <button
+                    onClick={() => removeMemoEntry(idx)}
+                    aria-label="메모 삭제"
+                    className="mt-0.5 h-5 w-5 rounded-full text-[12px] font-semibold text-gray-300 active:bg-gray-100"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))
+            )}
           </div>
+          <textarea
+            value={memoInput}
+            onChange={(e) => setMemoInput(e.target.value)}
+            placeholder="메모를 한 줄 추가하세요."
+            className="w-full min-h-[88px] rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-apolo-yellow"
+          />
+          <button
+            onClick={saveQuickMemo}
+            className="mt-2.5 w-full rounded-xl bg-white border border-amber-200 py-2.5 text-sm font-semibold text-amber-900 active:bg-amber-50"
+          >
+            메모 추가
+          </button>
         </div>
-      )}
+      </div>
 
       <div className="h-4" />
     </div>

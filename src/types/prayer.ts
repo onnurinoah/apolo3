@@ -27,6 +27,7 @@ export interface PrayerInput {
   personName: string;
   relationship: PrayerRelationship;
   topic: PrayerTopic;
+  status?: string;
   additionalContext?: string;
   length?: PrayerLength;
 }

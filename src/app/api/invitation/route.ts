@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fixParticles, josa } from "@/lib/korean";
+import { getOpenAIClient } from "@/lib/openai";
+import { INVITATION_PROMPT } from "@/lib/prompts";
 import {
   detectRelationshipProfile,
   eventMeta,
@@ -12,12 +14,16 @@ import {
 } from "@/lib/person";
 
 type InvitationLength = "short" | "medium" | "long";
+type SpeechStyle = "honorific" | "casual";
 
 type TemplateContext = {
   addressee: string;
   person: string;
   profile: RelationshipProfile;
   relationshipLabel: string;
+  status: string;
+  speechStyle: SpeechStyle;
+  chatStyleSample?: string;
   eventType: string;
   date?: string;
   location?: string;
@@ -47,6 +53,14 @@ const RELATIONSHIP_LABELS: Record<string, string> = {
   acquaintance: "지인",
   neighbor: "이웃",
   "former-church-colleague": "옛 교회동료",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  praying: "기도 중",
+  approaching: "접근 중",
+  invited: "초대함",
+  attending: "참석 중",
+  decided: "결신",
 };
 
 const PROFILE_EMOJIS: Partial<Record<RelationshipProfile, string[]>> = {
@@ -483,6 +497,27 @@ function mergeTone(profile: RelationshipProfile): ProfileTone {
   };
 }
 
+function resolveSpeechStyle(raw?: string): SpeechStyle {
+  return raw === "casual" ? "casual" : "honorific";
+}
+
+function profileBySpeech(
+  profile: RelationshipProfile,
+  speechStyle: SpeechStyle
+): RelationshipProfile {
+  if (speechStyle === "casual") {
+    if (profile === "friend" || profile === "sibling" || profile === "family") {
+      return profile;
+    }
+    return "friend";
+  }
+
+  if (profile === "friend" || profile === "sibling" || profile === "family") {
+    return "acquaintance";
+  }
+  return profile;
+}
+
 function softenLine(
   line: string,
   profile: RelationshipProfile,
@@ -502,6 +537,10 @@ function softenLine(
 function buildContext(body: {
   personName?: string;
   relationship?: string;
+  status?: string;
+  addressee?: string;
+  speechStyle?: string;
+  chatStyleSample?: string;
   eventType?: string;
   date?: string;
   location?: string;
@@ -516,11 +555,14 @@ function buildContext(body: {
   });
 
   return {
-    addressee: toAddressee(name, relationship),
+    addressee: sanitizeName(body.addressee) || toAddressee(name, relationship),
     person: toInvitationReference(name),
     profile,
     relationshipLabel:
       RELATIONSHIP_LABELS[relationship] || relationshipProfileLabel(profile),
+    status: STATUS_LABELS[sanitizeName(body.status)] || "기도 중",
+    speechStyle: resolveSpeechStyle(body.speechStyle),
+    chatStyleSample: sanitizeName(body.chatStyleSample),
     eventType: sanitizeName(body.eventType) || "예배",
     date: sanitizeName(body.date),
     location: sanitizeName(body.location),
@@ -534,7 +576,11 @@ function contextMention(ctx: TemplateContext, seed: number): string {
   const snippet = ctx.contextSnippet;
   if (!snippet) return "";
 
-  const casual = ctx.profile === "friend" || ctx.profile === "sibling" || ctx.profile === "family";
+  const casual =
+    ctx.speechStyle === "casual" ||
+    ctx.profile === "friend" ||
+    ctx.profile === "sibling" ||
+    ctx.profile === "family";
   const variants = casual
     ? [
         `${snippet}라 더 조심스럽게 연락했어.`,
@@ -557,23 +603,26 @@ function composeInvitation(
 ): string {
   const seed = stableHash(
     [
-      ctx.profile,
+      profileBySpeech(ctx.profile, ctx.speechStyle),
       ctx.relationshipLabel,
       ctx.eventType,
+      ctx.speechStyle,
+      ctx.chatStyleSample || "",
       ctx.meta,
       ctx.additionalContext || "",
       String(variationIndex),
     ].join("|")
   );
 
-  const tone = mergeTone(ctx.profile);
+  const effectiveProfile = profileBySpeech(ctx.profile, ctx.speechStyle);
+  const tone = mergeTone(effectiveProfile);
   const opening = normalizeOpening(
-    softenLine(pickOne(tone.opening, seed)(ctx), ctx.profile, seed + 3, length)
+    softenLine(pickOne(tone.opening, seed)(ctx), effectiveProfile, seed + 3, length)
   );
   const reason = pickOne(tone.reason, seed + 5)(ctx);
   const reassure = pickOne(tone.reassure, seed + 7)(ctx);
-  const ask = softenLine(pickOne(tone.ask, seed + 11)(ctx), ctx.profile, seed + 13, length);
-  const closing = softenLine(pickOne(tone.closing, seed + 17)(ctx), ctx.profile, seed + 19, length);
+  const ask = softenLine(pickOne(tone.ask, seed + 11)(ctx), effectiveProfile, seed + 13, length);
+  const closing = softenLine(pickOne(tone.closing, seed + 17)(ctx), effectiveProfile, seed + 19, length);
   const extraReason = pickOne(tone.reason, seed + 23)(ctx);
   const context = contextMention(ctx, seed + 29);
 
@@ -604,6 +653,10 @@ export async function POST(request: NextRequest) {
   const {
     personName = "",
     relationship,
+    status,
+    addressee = "",
+    speechStyle = "honorific",
+    chatStyleSample = "",
     eventType,
     date,
     location = "",
@@ -616,12 +669,80 @@ export async function POST(request: NextRequest) {
   const ctx = buildContext({
     personName,
     relationship,
+    status,
+    addressee,
+    speechStyle,
+    chatStyleSample,
     eventType,
     date,
     location,
     additionalContext,
   });
 
-  const message = composeInvitation(ctx, normalizedLength, variationIndex);
-  return NextResponse.json({ message });
+  const fallbackMessage = composeInvitation(ctx, normalizedLength, variationIndex);
+  const references = [
+    composeInvitation(ctx, normalizedLength, variationIndex + 1),
+    composeInvitation(ctx, normalizedLength, variationIndex + 2),
+    composeInvitation(ctx, normalizedLength, variationIndex + 3),
+  ];
+
+  const openai = getOpenAIClient();
+  if (!openai) {
+    return NextResponse.json({ message: fallbackMessage, source: "database" });
+  }
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.6,
+      max_tokens: normalizedLength === "long" ? 650 : normalizedLength === "medium" ? 440 : 280,
+      messages: [
+        { role: "system", content: INVITATION_PROMPT },
+        {
+          role: "user",
+          content: [
+            "아래 DB 초안들을 참고하여 자연스럽고 부담 없는 초대메시지를 작성하세요.",
+            "메시지는 카카오톡에 바로 보낼 수 있는 톤으로 작성합니다.",
+            "",
+            `대상: ${ctx.person}`,
+            `관계: ${ctx.relationshipLabel} (${ctx.profile})`,
+            `현재 상태: ${ctx.status}`,
+            `호칭: ${ctx.addressee}`,
+            `말투: ${ctx.speechStyle === "casual" ? "반말" : "존대"}`,
+            `평소 톡 말투 샘플: ${ctx.chatStyleSample || "없음"}`,
+            `모임명: ${ctx.eventType}`,
+            `일시/장소: ${ctx.meta || "미입력"}`,
+            `상황: ${ctx.additionalContext || "없음"}`,
+            `길이: ${normalizedLength}`,
+            "",
+            "DB 초안 A:",
+            fallbackMessage,
+            "",
+            "DB 초안 B:",
+            references[0],
+            "",
+            "DB 초안 C:",
+            references[1],
+            "",
+            "DB 초안 D:",
+            references[2],
+            "",
+            "중요 규칙:",
+            "1) 이름/호칭은 과하지 않게 사용",
+            "2) 한국어 조사 정확히",
+            "3) 오글거리는 과장 표현 금지",
+            "4) 관계별 어투를 자연스럽게 반영",
+            "5) 존대/반말 지시를 반드시 지킴",
+            "6) 평소 톡 말투 샘플이 있으면 문장 리듬에 반영",
+          ].join("\n"),
+        },
+      ],
+    });
+
+    const aiMessageRaw = completion.choices[0]?.message?.content || fallbackMessage;
+    const aiMessage = cleanup(applyEventParticles(aiMessageRaw, ctx.eventType));
+    return NextResponse.json({ message: aiMessage, source: "ai" });
+  } catch {
+    return NextResponse.json({ message: fallbackMessage, source: "database" });
+  }
 }

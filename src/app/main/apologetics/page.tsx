@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef, TouchEvent } from "react";
 import { categories } from "@/data/categories";
 import { answerStyles } from "@/data/styles";
 import { useQuestionSearch } from "@/hooks/useQuestionSearch";
 import { useAnswer, AnswerLength } from "@/hooks/useAnswer";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
-import { CategoryId } from "@/types/question";
 import ChatBubble from "@/components/ui/ChatBubble";
 import LoadingDots from "@/components/ui/LoadingDots";
 import RefreshButton from "@/components/ui/RefreshButton";
@@ -82,7 +81,7 @@ function AnswerView({ question, onBack }: { question: QuestionItem; onBack: () =
         </button>
         <div className="flex-1 min-w-0">
           <p className="text-sm text-gray-400 truncate">
-            {isCustom ? "직접 질문" : catInfo?.nameKo}
+            {isCustom ? "직접질문(AI)" : catInfo?.nameKo}
           </p>
           <p className="text-sm font-semibold text-gray-900 truncate">{question.question}</p>
         </div>
@@ -251,18 +250,16 @@ function AskView({ onSubmit }: { onSubmit: (q: string) => void }) {
 // ─── DB 찾기 탭 ─────────────────────────────────────────────
 function BrowseView({ onSelect }: { onSelect: (q: QuestionItem) => void }) {
   const [query, setQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<CategoryId | undefined>();
-  const [showAllDefault, setShowAllDefault] = useState(false);
-  const { results, isLoading } = useQuestionSearch(query, selectedCategory);
+  const [showAllList, setShowAllList] = useState(false);
+  const { results, isLoading } = useQuestionSearch(query, undefined);
   const { isFavorite } = useFavorites();
-  const isDefaultListing = !query.trim() && !selectedCategory;
-  const visibleResults =
-    isDefaultListing && !showAllDefault ? results.slice(0, 8) : results;
+  const hasQuery = Boolean(query.trim());
+  const shouldShowList = hasQuery || showAllList;
 
   return (
     <div className="flex flex-col">
       {/* 검색바 */}
-      <div className="px-4 pt-3 pb-2">
+      <div className="px-4 pt-3 pb-3">
         <div className="relative">
           <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" width="18" height="18" viewBox="0 0 24 24" fill="none">
             <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
@@ -281,86 +278,74 @@ function BrowseView({ onSelect }: { onSelect: (q: QuestionItem) => void }) {
         </div>
       </div>
 
-      {/* 카테고리 칩 */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-2">
-        <button
-          onClick={() => {
-            setSelectedCategory(undefined);
-            setShowAllDefault(false);
-          }}
-          className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-            !selectedCategory ? "bg-apolo-yellow text-gray-900" : "bg-gray-100 text-gray-500"
-          }`}
-        >
-          전체
-        </button>
-        {categories.map((cat) => (
+      {!shouldShowList && (
+        <div className="px-4 pb-2">
           <button
-            key={cat.id}
-            onClick={() => {
-              setSelectedCategory(cat.id);
-              setShowAllDefault(true);
-            }}
-            className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              selectedCategory === cat.id ? "bg-apolo-yellow text-gray-900" : "bg-gray-100 text-gray-500"
-            }`}
+            onClick={() => setShowAllList(true)}
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 text-sm font-semibold text-gray-700 active:bg-gray-100"
           >
-            {cat.nameKo}
+            전체질문 펼쳐보기 ({results.length}개)
           </button>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {shouldShowList && (
+        <div className="px-4 pb-2">
+          <button
+            onClick={() => {
+              setShowAllList((prev) => (hasQuery ? prev : !prev));
+              if (hasQuery) setQuery("");
+            }}
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 text-sm font-semibold text-gray-700 active:bg-gray-100"
+          >
+            {hasQuery ? "검색 지우기" : "전체질문 접기"}
+          </button>
+        </div>
+      )}
 
       {/* 질문 목록 */}
-      <div className="px-4 py-2 space-y-2">
-        {isLoading ? (
-          <div className="flex justify-center py-8"><LoadingDots /></div>
-        ) : results.length === 0 ? (
-          <div className="text-center py-12">
-            <svg className="mx-auto mb-3" width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#D1D5DB" strokeWidth="2" /><path d="M16.5 16.5L21 21" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round" /></svg>
-            <p className="text-sm text-gray-400">{query ? `"${query}"에 대한 질문을 찾을 수 없어요` : "질문이 없습니다"}</p>
-          </div>
-        ) : (
-          <>
-            {!query && !selectedCategory && (
-              <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide">전체 질문 ({results.length})</p>
-            )}
-            {visibleResults.map((q) => {
-              const cat = categories.find((c) => c.id === q.categoryId);
-              const fav = isFavorite(q.id);
-              return (
-                <button
-                  key={q.id}
-                  onClick={() => onSelect(q)}
-                  className="w-full text-left bg-white rounded-2xl shadow-card border border-gray-50 px-4 py-3 active:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <span className="inline-flex items-center text-sm font-medium text-apolo-yellow-dark bg-apolo-yellow-light px-2 py-0.5 rounded-full mb-1.5">
-                        {cat?.nameKo}
-                      </span>
-                      <p className="text-sm font-medium text-gray-900 leading-snug">{q.question}</p>
+      {shouldShowList && (
+        <div className="px-4 py-2 space-y-2">
+          {isLoading ? (
+            <div className="flex justify-center py-8"><LoadingDots /></div>
+          ) : results.length === 0 ? (
+            <div className="text-center py-12">
+              <svg className="mx-auto mb-3" width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#D1D5DB" strokeWidth="2" /><path d="M16.5 16.5L21 21" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round" /></svg>
+              <p className="text-sm text-gray-400">{query ? `"${query}"에 대한 질문을 찾을 수 없어요` : "질문이 없습니다"}</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
+                전체 질문 ({results.length})
+              </p>
+              {results.map((q) => {
+                const cat = categories.find((c) => c.id === q.categoryId);
+                const fav = isFavorite(q.id);
+                return (
+                  <button
+                    key={q.id}
+                    onClick={() => onSelect(q)}
+                    className="w-full text-left bg-white rounded-2xl shadow-card border border-gray-50 px-4 py-3 active:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <span className="inline-flex items-center text-sm font-medium text-apolo-yellow-dark bg-apolo-yellow-light px-2 py-0.5 rounded-full mb-1.5">
+                          {cat?.nameKo}
+                        </span>
+                        <p className="text-sm font-medium text-gray-900 leading-snug">{q.question}</p>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0 mt-1">
+                        {fav && <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFD43B"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>}
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18L15 12L9 6" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round" /></svg>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0 mt-1">
-                      {fav && <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFD43B"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>}
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18L15 12L9 6" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round" /></svg>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-            {isDefaultListing && results.length > 8 && (
-              <button
-                onClick={() => setShowAllDefault((prev) => !prev)}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 text-sm font-semibold text-gray-700 active:bg-gray-100"
-              >
-                {showAllDefault
-                  ? "기본 목록으로 접기"
-                  : `전체 질문 보기 (${results.length}개)`}
-              </button>
-            )}
-          </>
-        )}
-      </div>
+                  </button>
+                );
+              })}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -369,6 +354,10 @@ function BrowseView({ onSelect }: { onSelect: (q: QuestionItem) => void }) {
 export default function ApologeticsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("browse");
   const [selectedQuestion, setSelectedQuestion] = useState<QuestionItem | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+
+  const activeIdx = viewMode === "browse" ? 0 : 1;
 
   const handleCustomQuestion = useCallback((questionText: string) => {
     setSelectedQuestion({
@@ -382,30 +371,55 @@ export default function ApologeticsPage() {
     setSelectedQuestion(q);
   }, []);
 
+  const onTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+    touchStartXRef.current = e.changedTouches[0]?.clientX ?? null;
+    touchStartYRef.current = e.changedTouches[0]?.clientY ?? null;
+  };
+
+  const onTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
+    const startX = touchStartXRef.current;
+    const startY = touchStartYRef.current;
+    const endX = e.changedTouches[0]?.clientX ?? null;
+    const endY = e.changedTouches[0]?.clientY ?? null;
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    if (startX === null || startY === null || endX === null || endY === null) return;
+
+    const deltaX = endX - startX;
+    const deltaY = endY - startY;
+    if (Math.abs(deltaX) < 40 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+    if (deltaX < 0) setViewMode("ask");
+    else setViewMode("browse");
+  };
+
   if (selectedQuestion) {
     return <AnswerView question={selectedQuestion} onBack={() => setSelectedQuestion(null)} />;
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col touch-pan-y" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {/* 모드 토글 탭 */}
       <div className="px-4 pt-4 pb-2">
-        <div className="flex bg-gray-100 rounded-xl p-1">
+        <div className="relative grid grid-cols-2 rounded-xl bg-amber-50/50 p-1 border border-amber-100">
+          <div
+            className="absolute top-1 bottom-1 w-[calc((100%_-_0.5rem)_/_2)] rounded-lg bg-apolo-yellow shadow-sm transition-transform duration-200"
+            style={{ transform: `translateX(${activeIdx * 100}%)` }}
+          />
           <button
             onClick={() => setViewMode("browse")}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-              viewMode === "browse" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"
+            className={`relative z-10 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              viewMode === "browse" ? "text-gray-900" : "text-gray-500 active:bg-white/70"
             }`}
           >
             자주 묻는 질문
           </button>
           <button
             onClick={() => setViewMode("ask")}
-            className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-              viewMode === "ask" ? "bg-white text-gray-900 shadow-sm" : "text-gray-400"
+            className={`relative z-10 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              viewMode === "ask" ? "text-gray-900" : "text-gray-500 active:bg-white/70"
             }`}
           >
-            직접 질문
+            직접질문(AI)
           </button>
         </div>
       </div>

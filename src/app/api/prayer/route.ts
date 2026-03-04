@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fixParticles } from "@/lib/korean";
+import { getOpenAIClient } from "@/lib/openai";
+import { PRAYER_PROMPT } from "@/lib/prompts";
 import {
   detectRelationshipProfile,
   objective,
@@ -31,6 +33,7 @@ type PrayerContext = {
   name: string;
   relationship: PersonRelationship;
   profile: RelationshipProfile;
+  status: string;
   topicId: string;
   topic: string;
   additionalContext?: string;
@@ -51,6 +54,14 @@ const TOPIC_LABELS: Record<string, string> = {
   relationships: "대인관계",
   guidance: "인도하심",
   gratitude: "감사",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  praying: "기도 중",
+  approaching: "접근 중",
+  invited: "초대함",
+  attending: "참석 중",
+  decided: "결신",
 };
 
 const STYLE_ORDER: PrayerStyleId[] = [
@@ -403,6 +414,7 @@ function resolveRelationship(raw?: string): PersonRelationship {
 function buildContext(body: {
   personName?: string;
   relationship?: string;
+  status?: string;
   topic?: string;
   additionalContext?: string;
 }): PrayerContext {
@@ -421,6 +433,7 @@ function buildContext(body: {
     name,
     relationship,
     profile,
+    status: STATUS_LABELS[sanitizeName(body.status)] || "기도 중",
     topicId,
     topic,
     additionalContext: sanitizeName(body.additionalContext),
@@ -546,6 +559,7 @@ export async function POST(request: NextRequest) {
   const {
     personName,
     relationship,
+    status,
     topic,
     additionalContext,
     variationIndex = 0,
@@ -553,13 +567,79 @@ export async function POST(request: NextRequest) {
   } = body;
 
   const normalizedLength = normalizeLength(length);
-  const ctx = buildContext({ personName, relationship, topic, additionalContext });
+  const ctx = buildContext({ personName, relationship, status, topic, additionalContext });
 
   const styleSeed = stableHash(
     [ctx.name, ctx.relationship, ctx.topicId, ctx.additionalContext || "", String(variationIndex)].join("|")
   );
   const style = STYLE_ORDER[Math.abs(styleSeed) % STYLE_ORDER.length];
+  const fallbackPrayer = composePrayer(style, normalizedLength, ctx, variationIndex);
 
-  const prayer = composePrayer(style, normalizedLength, ctx, variationIndex);
-  return NextResponse.json({ prayer });
+  const referenceStyles = [
+    style,
+    STYLE_ORDER[(STYLE_ORDER.indexOf(style) + 3) % STYLE_ORDER.length],
+    STYLE_ORDER[(STYLE_ORDER.indexOf(style) + 7) % STYLE_ORDER.length],
+  ];
+  const references = referenceStyles.map((s, idx) =>
+    composePrayer(s, normalizedLength, ctx, variationIndex + idx + 1)
+  );
+
+  const openai = getOpenAIClient();
+  if (!openai) {
+    return NextResponse.json({ prayer: fallbackPrayer, source: "database" });
+  }
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.42,
+      max_tokens: normalizedLength === "long" ? 1150 : normalizedLength === "medium" ? 780 : 420,
+      messages: [
+        { role: "system", content: PRAYER_PROMPT },
+        {
+          role: "user",
+          content: [
+            "아래 DB 초안들을 참고해 자연스럽고 어색하지 않은 최종 기도문을 작성하세요.",
+            "문체는 복음주의적이며 따뜻하고 진중하게 유지하세요.",
+            "",
+            `대상: ${ctx.targetRef}`,
+            `관계: ${ctx.relationship}`,
+            `현재 상태: ${ctx.status}`,
+            `기도 주제: ${ctx.topic}`,
+            `추가 상황: ${ctx.additionalContext || "없음"}`,
+            `길이: ${normalizedLength}`,
+            "",
+            "DB 초안 A:",
+            fallbackPrayer,
+            "",
+            "DB 초안 B:",
+            references[0],
+            "",
+            "DB 초안 C:",
+            references[1],
+            "",
+            "DB 초안 D:",
+            references[2],
+            "",
+            "중요 규칙:",
+            "1) 이름/호칭은 자연스럽게 1-2회만 사용",
+            "2) 한국어 조사를 정확히",
+            "3) 비슷한 문장 반복 금지",
+            "4) 마지막 문장은 반드시 '예수님의 이름으로 기도합니다. 아멘.'",
+          ].join("\n"),
+        },
+      ],
+    });
+
+    const aiPrayer = cleanup(
+      completion.choices[0]?.message?.content || fallbackPrayer
+    );
+    const finalized = aiPrayer.endsWith("예수님의 이름으로 기도합니다. 아멘.")
+      ? aiPrayer
+      : cleanup(`${aiPrayer}\n\n예수님의 이름으로 기도합니다. 아멘.`);
+
+    return NextResponse.json({ prayer: finalized, source: "ai" });
+  } catch {
+    return NextResponse.json({ prayer: fallbackPrayer, source: "database" });
+  }
 }

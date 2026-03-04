@@ -5,6 +5,18 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const ONBOARDING_KEY = "apolo_onboarded";
+const INTERCEDE_COUNT_KEY = "apolo_intercede_count";
+
+function toSafeNumber(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function calculateLevel(score: number): number {
+  const normalized = Math.max(0, score);
+  return Math.min(10, Math.max(1, Math.floor(normalized / 8) + 1));
+}
 
 export default function Header() {
   const router = useRouter();
@@ -14,6 +26,7 @@ export default function Header() {
   const [nicknameInput, setNicknameInput] = useState("");
   const [savingNickname, setSavingNickname] = useState(false);
   const [nicknameError, setNicknameError] = useState("");
+  const [level, setLevel] = useState(1);
 
   useEffect(() => {
     function getNickname(user: { user_metadata?: Record<string, unknown> } | null) {
@@ -22,11 +35,51 @@ export default function Header() {
     }
 
     let active = true;
+    async function loadLevel(userId: string, intercedeRaw: unknown) {
+      let targetsCount = 0;
+      let prayerShareCount = 0;
+      const intercedeCount = toSafeNumber(intercedeRaw);
+
+      try {
+        const [{ count: tc }, { count: pc }] = await Promise.all([
+          supabase
+            .from("targets")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", userId),
+          supabase
+            .from("prayer_shares")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", userId),
+        ]);
+        if (typeof tc === "number") targetsCount = tc;
+        if (typeof pc === "number") prayerShareCount = pc;
+      } catch {
+        // fallback to local where possible
+      }
+
+      let localIntercede = 0;
+      try {
+        localIntercede = toSafeNumber(localStorage.getItem(INTERCEDE_COUNT_KEY));
+      } catch {
+        localIntercede = 0;
+      }
+
+      const score =
+        targetsCount * 2 +
+        prayerShareCount * 3 +
+        Math.max(intercedeCount, localIntercede);
+
+      if (active) setLevel(calculateLevel(score));
+    }
+
     async function boot() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!active || !user) return;
+      if (!active || !user) {
+        if (active) setLevel(1);
+        return;
+      }
 
       const nextNickname = getNickname(user);
       if (nextNickname) {
@@ -34,6 +87,7 @@ export default function Header() {
       } else {
         setShowNicknameModal(true);
       }
+      await loadLevel(user.id, user.user_metadata?.intercedeCount);
     }
     void boot();
 
@@ -43,6 +97,12 @@ export default function Header() {
       const nextNickname = getNickname(session?.user ?? null);
       setNickname(nextNickname);
       setShowNicknameModal(Boolean(session?.user && !nextNickname));
+      const user = session?.user;
+      if (!user) {
+        setLevel(1);
+        return;
+      }
+      void loadLevel(user.id, user.user_metadata?.intercedeCount);
     });
 
     return () => {
@@ -114,9 +174,14 @@ export default function Header() {
 
           <div className="flex items-center gap-2">
             {nickname && (
-              <span className="h-8 max-w-[92px] px-3 rounded-full bg-apolo-yellow-light text-apolo-yellow-dark text-xs font-bold inline-flex items-center truncate">
-                {nickname}
-              </span>
+              <>
+                <span className="h-8 max-w-[92px] px-3 rounded-full bg-apolo-yellow-light text-apolo-yellow-dark text-xs font-bold inline-flex items-center truncate">
+                  {nickname}
+                </span>
+                <span className="h-8 px-2.5 rounded-full bg-gray-100 text-gray-700 text-xs font-bold inline-flex items-center whitespace-nowrap">
+                  Lv.{level}
+                </span>
+              </>
             )}
             <button
               onClick={() => void handleSignOut()}
