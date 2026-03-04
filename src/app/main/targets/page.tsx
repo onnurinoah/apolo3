@@ -408,6 +408,23 @@ export default function TargetsPage() {
         </div>
       )}
 
+      {!showForm && (
+        <div
+          className={`rounded-2xl border px-4 py-3 ${
+            hasGatheringNotice
+              ? "bg-amber-50 border-amber-100"
+              : "bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-100"
+          }`}
+        >
+          <p className={`text-sm font-semibold ${hasGatheringNotice ? "text-amber-600" : "text-amber-700"}`}>
+            오늘의 한 걸음
+          </p>
+          <p className={`text-base font-bold mt-0.5 ${hasGatheringNotice ? "text-amber-800" : "text-amber-900"}`}>
+            {missionText}
+          </p>
+        </div>
+      )}
+
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <div>
@@ -431,26 +448,9 @@ export default function TargetsPage() {
       </div>
 
       {!showForm && (
-        <div
-          className={`rounded-2xl border px-4 py-3 ${
-            hasGatheringNotice
-              ? "bg-amber-50 border-amber-100"
-              : "bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-100"
-          }`}
-        >
-          <p className={`text-sm font-semibold ${hasGatheringNotice ? "text-amber-600" : "text-amber-700"}`}>
-            오늘의 한 걸음
-          </p>
-          <p className={`text-base font-bold mt-0.5 ${hasGatheringNotice ? "text-amber-800" : "text-amber-900"}`}>
-            {missionText}
-          </p>
-        </div>
-      )}
-
-      {!showForm && (
         <button
           onClick={() => setShowForm(true)}
-          className="w-full rounded-2xl border border-amber-200 bg-yellow-50 py-3.5 text-sm font-bold text-amber-900 active:bg-amber-100"
+          className="w-full rounded-2xl bg-yellow-100 py-3.5 text-sm font-bold text-amber-900 shadow-sm transition-colors active:bg-yellow-200"
         >
           + 전도 대상자 추가
         </button>
